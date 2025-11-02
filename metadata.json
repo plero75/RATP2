@@ -1,0 +1,5 @@
+{
+  "name": "VHP Live Dashboard",
+  "description": "An automated, real-time information dashboard for visitors and staff of the Hippodrome de Paris-Vincennes, displaying transport schedules, weather, news, and race information in a clear, no-scroll portrait interface.",
+  "requestFramePermissions": []
+}
