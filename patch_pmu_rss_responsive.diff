@@ -1,0 +1,405 @@
+commit 9d3e5c8 (HEAD -> main)
+Author: Paul Lerosier <plero75@users.noreply.github.com>
+Date:   2025-11-02
+
+    Ajout : prochaines courses PMU + RSS Le Monde + responsive no-scroll + infos trafic par ligne (RATP2)
+
+diff --git a/constants.js b/constants.js
+new file mode 100644
+index 0000000..b1a6a22
+--- /dev/null
++++ b/constants.js
+@@
++// 🔧 constants.js — configuration générale du dashboard RATP2
++
++export const PROXY_URL = 'https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=';
++
++export const PRIM = {
++  STOP_MONITORING: (monitoringRef) =>
++    `${PROXY_URL}https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${encodeURIComponent(monitoringRef)}`,
++  GENERAL_MESSAGE_BY_LINE: (lineRef) =>
++    `${PROXY_URL}https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${encodeURIComponent(lineRef)}`,
++};
++
++// 🧭 Stops
++export const STOPS = {
++  RER_A_JOINVILLE: 'STIF:StopArea:SP:43135:',
++  BUS_77_HIPPODROME: 'STIF:StopArea:SP:463641:',
++  BUS_201_ECOLE_BREUIL: 'STIF:StopArea:SP:463644:',
++};
++
++// 🧵 Lignes
++export const LINES = {
++  RER_A: 'STIF:Line::A:',
++  BUS_77: 'STIF:Line::77:',
++  BUS_201: 'STIF:Line::201:',
++};
++
++// 🗞️ Flux RSS Le Monde
++export const RSS = {
++  LEMONDE_TOP: `${PROXY_URL}https://www.lemonde.fr/rss/une.xml`,
++};
++
++// 🐎 Prochaines courses PMU — automatique selon date du jour
++const today = new Date();
++const dd = String(today.getDate()).padStart(2, '0');
++const mm = String(today.getMonth() + 1).padStart(2, '0');
++const yyyy = today.getFullYear();
++
++export const RACES = {
++  PMU_URL: `${PROXY_URL}https://offline.turfinfo.api.pmu.fr/rest/client/7/programme/${dd}${mm}${yyyy}`,
++};
+diff --git a/index.html b/index.html
+new file mode 100644
+index 0000000..d9e7f11
+--- /dev/null
++++ b/index.html
+@@
++<!DOCTYPE html>
++<html lang="fr">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <title>Vincennes Mobility Dashboard</title>
++  <link rel="stylesheet" href="./styles.css" />
++</head>
++<body>
++  <header id="masthead">
++    <div class="brand">Vincennes Mobility</div>
++    <div id="clock"></div>
++  </header>
++
++  <main id="grid">
++    <section id="rerA" class="card">
++      <h2>🚆 RER A — Joinville-le-Pont</h2>
++      <div class="traffic" data-line="RER_A"></div>
++      <div class="departures" data-stop="RER_A_JOINVILLE"></div>
++    </section>
++
++    <section id="bus77" class="card">
++      <h2>🚌 Bus 77 — Hippodrome de Vincennes</h2>
++      <div class="traffic" data-line="BUS_77"></div>
++      <div class="departures" data-stop="BUS_77_HIPPODROME"></div>
++    </section>
++
++    <section id="bus201" class="card">
++      <h2>🚌 Bus 201 — École du Breuil / Pyramides</h2>
++      <div class="traffic" data-line="BUS_201"></div>
++      <div class="departures" data-stop="BUS_201_ECOLE_BREUIL"></div>
++    </section>
++
++    <section id="races" class="card">
++      <h2>🐎 Prochaines courses</h2>
++      <ul id="racesList"></ul>
++    </section>
++
++    <section id="news" class="card">
++      <h2>🗞️ Le Monde — À la Une</h2>
++      <ul id="newsList"></ul>
++    </section>
++  </main>
++
++  <footer id="legal">
++    <small>Sources : Île-de-France Mobilités, PMU TurfInfo, Le Monde, SETF.</small>
++  </footer>
++
++  <script type="module" src="./script.js"></script>
++</body>
++</html>
+diff --git a/modules/departures.js b/modules/departures.js
+new file mode 100644
+index 0000000..4bce47a
+--- /dev/null
++++ b/modules/departures.js
+@@
++import { PRIM, STOPS } from '../constants.js';
++
++function mmss(diffMs){ const m = Math.max(0, Math.floor(diffMs/60000)); return `${m} min`; }
++function formatTime(d){ return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
++
++function renderDepartures(container, items){
++  container.innerHTML = '';
++  items.slice(0,4).forEach(it=>{
++    const planned = it.planned;
++    const expected = it.expected || planned;
++    const lateMin = Math.round((expected - planned)/60000);
++    const status = (it.status||'').toLowerCase();
++
++    container.insertAdjacentHTML('beforeend', `
++      <div class="departure">
++        <div class="dest">${it.headsign || it.direction || '—'}</div>
++        <div class="when ${status==='cancelled'?'cancel':''}">
++          ${formatTime(expected)} ${lateMin>0?`<span class="late">(+${lateMin} min)</span>`:''}
++          ${status==='cancelled'?' — supprimé':''}
++        </div>
++        <div class="eta">${mmss(expected - Date.now())}</div>
++      </div>
++    `);
++  });
++}
++
++function mapPRIM(resp){
++  const visits = resp?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
++  return visits.map(v=>{
++    const mv = v.MonitoredVehicleJourney || {};
++    const call = mv.MonitoredCall || {};
++    const planned = new Date(call.AimedDepartureTime || call.AimedArrivalTime || mv.OriginAimedDepartureTime || Date.now());
++    const expected = new Date(call.ExpectedDepartureTime || call.ExpectedArrivalTime || planned);
++    return {
++      headsign: mv.DestinationName?.[0]?.value || mv.DestinationName || mv.LineRef,
++      direction: mv.DirectionName?.[0]?.value || '',
++      planned, expected,
++      status: mv?.VehicleStatus || call.DepartureStatus || v?.VehicleAtStop,
++    };
++  });
++}
++
++export async function loadDepartures() {
++  const nodes = document.querySelectorAll('.departures[data-stop]');
++  await Promise.all([...nodes].map(async node=>{
++    const stopKey = node.getAttribute('data-stop');
++    const monitoringRef = STOPS[stopKey];
++    if (!monitoringRef) return;
++
++    try{
++      const url = PRIM.STOP_MONITORING(monitoringRef);
++      const res = await fetch(url);
++      const json = await res.json();
++      renderDepartures(node, mapPRIM(json));
++    }catch(e){
++      node.innerHTML = `<div class="banner err">⛔ Prochains passages indisponibles.</div>`;
++      console.error('departures error', e);
++    }
++  }));
++}
+diff --git a/modules/news.js b/modules/news.js
+new file mode 100644
+index 0000000..b59d1ae
+--- /dev/null
++++ b/modules/news.js
+@@
++import { RSS } from '../constants.js';
++
++export async function loadNews(){
++  const ul = document.getElementById('newsList');
++  try{
++    const res = await fetch(RSS.LEMONDE_TOP);
++    const xmlText = await res.text();
++    const xml = new window.DOMParser().parseFromString(xmlText, 'application/xml');
++    const items = [...xml.querySelectorAll('item')].slice(0,8);
++    ul.innerHTML = items.map(it=>{
++      const title = it.querySelector('title')?.textContent?.trim() || 'Article';
++      const pub = it.querySelector('pubDate')?.textContent?.trim() || '';
++      return `<li>• ${title}${pub?` <span style="opacity:.6">(${pub.split('+')[0].trim()})</span>`:''}</li>`;
++    }).join('');
++  }catch(e){
++    ul.innerHTML = `<li>Flux indisponible pour l’instant.</li>`;
++    console.error('rss error', e);
++  }
++}
+diff --git a/modules/races.js b/modules/races.js
+new file mode 100644
+index 0000000..fcb63e1
+--- /dev/null
++++ b/modules/races.js
+@@
++import { RACES } from '../constants.js';
++
++async function fetchPmuRaces() {
++  const res = await fetch(RACES.PMU_URL);
++  if (!res.ok) throw new Error(`HTTP ${res.status}`);
++  const data = await res.json();
++
++  const reunions = data?.programme?.reunions || [];
++  const list = [];
++  for (const reunion of reunions) {
++    const hippodrome = reunion?.hippodrome?.nomCourt || reunion?.hippodrome?.nom || '—';
++    for (const c of reunion.courses || []) {
++      const off = c.heureDepart || c.horaireOfficiel || c.heure;
++      list.push({
++        hippodrome,
++        libelle: c.libelle || c.nomCourt || c.nom || `Course ${c.numero}`,
++        heure: off,
++        date: reunion.dateReunion || data.programme.dateReunion,
++      });
++    }
++  }
++
++  return list
++    .map(r => ({ ...r, ts: new Date(`${r.date}T${r.heure || '00:00'}`).getTime() }))
++    .filter(r => r.ts >= Date.now() - 30 * 60 * 1000)
++    .sort((a, b) => a.ts - b.ts)
++    .slice(0, 6);
++}
++
++function renderRaces(list) {
++  const ul = document.getElementById('racesList');
++  if (!list || !list.length) {
++    ul.innerHTML = `<li>Aucune course prévue aujourd'hui.</li>`;
++    return;
++  }
++  ul.innerHTML = list.map(r => {
++    const t = new Date(r.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
++    return `<li>• ${t} — ${r.libelle} <span style="opacity:.7">(${r.hippodrome})</span></li>`;
++  }).join('');
++}
++
++export async function loadRaces() {
++  const ul = document.getElementById('racesList');
++  ul.innerHTML = `<li>Chargement des courses...</li>`;
++  try {
++    const list = await fetchPmuRaces();
++    renderRaces(list);
++  } catch (e) {
++    console.error('Erreur chargement courses PMU', e);
++    ul.innerHTML = `<li>⚠️ Impossible de récupérer les prochaines courses.</li>`;
++  }
++}
+diff --git a/modules/traffic.js b/modules/traffic.js
+new file mode 100644
+index 0000000..e5f60e7
+--- /dev/null
++++ b/modules/traffic.js
+@@
++import { PRIM, LINES } from '../constants.js';
++
++function renderBanner(container, messages) {
++  container.innerHTML = '';
++  if (!messages || !messages.length) {
++    container.innerHTML = `<div class="banner ok">Aucune perturbation signalée.</div>`;
++    return;
++  }
++  const m = messages[0];
++  const severity = (m.severity || '').toLowerCase();
++  const klass = severity.includes('severe') || severity.includes('maj')
++    ? 'err'
++    : severity.includes('minor') ? 'warn' : 'ok';
++  const text = m.summary || m.title || 'Information trafic';
++  container.innerHTML = `<div class="banner ${klass}">⚠️ ${text}</div>`;
++}
++
++export async function loadTrafficBanners() {
++  const nodes = document.querySelectorAll('.traffic[data-line]');
++  await Promise.all([...nodes].map(async node => {
++    const lineKey = node.getAttribute('data-line');
++    const lineRef = LINES[lineKey];
++    if (!lineRef) return;
++    try {
++      const url = PRIM.GENERAL_MESSAGE_BY_LINE(lineRef);
++      const res = await fetch(url);
++      const json = await res.json();
++      const messages = (json?.messages || json) ?? [];
++      const mapped = messages.map(m => ({
++        summary: m.Summary || m.summary || m.title,
++        severity: m.Severity || m.severity || '',
++      }));
++      renderBanner(node, mapped);
++    } catch (e) {
++      node.innerHTML = `<div class="banner err">⚠️ Impossible de récupérer les infos trafic.</div>`;
++      console.error('traffic error', e);
++    }
++  }));
++}
+diff --git a/script.js b/script.js
+new file mode 100644
+index 0000000..a88955a
+--- /dev/null
++++ b/script.js
+@@
++import { loadTrafficBanners } from './modules/traffic.js';
++import { loadDepartures } from './modules/departures.js';
++import { loadNews } from './modules/news.js';
++import { loadRaces } from './modules/races.js';
++
++function tickClock(){
++  const el = document.getElementById('clock');
++  el.textContent = new Date().toLocaleString('fr-FR', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
++}
++tickClock(); setInterval(tickClock, 15000);
++
++await Promise.all([
++  loadTrafficBanners(),
++  loadDepartures(),
++  loadNews(),
++  loadRaces(),
++]);
++
++setInterval(loadTrafficBanners, 60000);
++setInterval(loadDepartures, 30000);
++setInterval(loadNews, 300000);
++setInterval(loadRaces, 600000);
+diff --git a/styles.css b/styles.css
+new file mode 100644
+index 0000000..f7a1b5c
+--- /dev/null
++++ b/styles.css
+@@
++:root{
++  --bg:#0b1220; --fg:#eef2f7; --muted:#9fb0c0;
++  --card:#111a2b; --accent:#2e7cf6; --warn:#ffc107; --err:#ff5252; --ok:#19c37d;
++}
++
++*{box-sizing:border-box}
++html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:16px/1.3 system-ui,Segoe UI,Roboto,Arial}
++#masthead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #15213a}
++.brand{font-weight:700;letter-spacing:.3px}
++#clock{opacity:.85}
++
++#grid{display:grid;gap:12px;padding:12px;height:calc(100% - 72px);}
++
++.card{background:var(--card);border:1px solid #18243f;border-radius:16px;padding:12px;display:flex;flex-direction:column;min-height:0;}
++.card h2{margin:0 0 8px 0;font-size:18px}
++
++.traffic{margin:4px 0 8px 0}
++.banner{padding:6px 8px;border-radius:10px;font-size:14px;background:#1a263f;border:1px solid #233357}
++.banner.warn{background:#2a2530;border-color:#47384d;color:#f5d1ff}
++.banner.err{background:#381e1e;border-color:#5a2626;color:#ffd4d4}
++.banner.ok{background:#1a2f24;border-color:#244b3a;color:#d2ffe9}
++
++#newsList,#racesList{list-style:none;margin:0;padding:0;overflow:hidden}
++#newsList li,#racesList li{padding:6px 0;border-bottom:1px dashed #233357}
++
++.departures{display:flex;flex-direction:column;gap:6px;overflow:hidden}
++.departure{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid #1d2b49;border-radius:12px;background:#0f1726;}
++.when.cancel{text-decoration:line-through;color:var(--err)}
++.late{color:var(--warn)}
++
++@media (orientation:portrait){
++  #grid{grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto;}
++  #races{grid-column:2;grid-row:1/3}
++  #news{grid-column:2;grid-row:3}
++}
++
++@media (orientation:landscape){
++  #grid{grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;}
++  #news{grid-column:3;grid-row:1/3}
++}
++
++#legal{padding:6px 16px;border-top:1px solid #15213a;color:var(--muted)}
+
+import { REFRESH_INTERVALS } from "./src/constants.js";
+import { renderRER } from "./src/modules/rer.js";
+import { renderBus } from "./src/modules/bus.js";
+import { fetchTrafficMessages, getActiveTrafficMessage } from "./src/utils/trafficMessages.js";
+
+async function refreshAll() {
+  await renderRER(document.getElementById("rer-joinville"), "JOINVILLE_RER");
+
+  await renderBus(document.getElementById("bus-77"), "JOINVILLE_RER", "BUS_77", "Bus 77");
+  await renderBus(document.getElementById("bus-201"), "JOINVILLE_RER", "BUS_201", "Bus 201");
+  await renderBus(document.getElementById("bus-108"), "JOINVILLE_RER", "BUS_108", "Bus 108");
+  await renderBus(document.getElementById("bus-110"), "JOINVILLE_RER", "BUS_110", "Bus 110");
+  await renderBus(document.getElementById("bus-101"), "JOINVILLE_RER", "BUS_101", "Bus 101");
+  await renderBus(document.getElementById("bus-281"), "JOINVILLE_RER", "BUS_281", "Bus 281");
+  await renderBus(document.getElementById("bus-n33"), "JOINVILLE_RER", "N33", "Noctilien N33");
+  await renderBus(document.getElementById("bus-n34"), "JOINVILLE_RER", "N34", "Noctilien N34");
+  await renderBus(document.getElementById("bus-520"), "JOINVILLE_RER", "BUS_520", "Navette 520");
+
+  const rawTraffic = await fetchTrafficMessages("RERA");
+  const banner = getActiveTrafficMessage(rawTraffic);
+  const el = document.getElementById("traffic-banner");
+  el.textContent = banner || "✅ Trafic normal";
+}
+
+refreshAll();
+setInterval(refreshAll, REFRESH_INTERVALS.BUS);
