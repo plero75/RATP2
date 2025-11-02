@@ -146,7 +146,7 @@ export const PARIS_TRAFFIC_API_PARAMS = {
 // =====================================================
 // 🏇 Courses hippiques (PMU)
 // =====================================================
-export const PMU_API_BASE_URL = "https://online.turfinfo.api.pmu.fr/rest/client/1/programme/";
+export const PMU_API_BASE_URL = "https://offline.turfinfo.api.pmu.fr/rest/client/1/programme/";
 
 // =====================================================
 // 🚲 Vélib’
