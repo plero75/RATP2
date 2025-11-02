@@ -15,6 +15,10 @@
             --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --status-ok-bg: #28a745;
             --status-alert-bg: #dc3545;
+            /* IDFM official colors */
+            --rer-a-color: #E30520; /* RER A */
+            --bus-color: #008D36;   /* Bus */
+            --velib-color: #00AEEF; /* Vélib' */
         }
         * { box-sizing: border-box; }
         body {
@@ -26,6 +30,14 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+        /* Strict portrait frame 1080x1920 as per spec */
+        @media (orientation: portrait) {
+          body {
+            max-width: 1080px;
+            max-height: 1920px;
+            margin: 0 auto;
+          }
         }
         header, footer {
             flex-shrink: 0;
@@ -73,7 +85,8 @@
         
         /* Transport Styles */
         .line-pill { font-weight: bold; color: white; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 1.1rem; }
-        .line-pill.rer-a { background-color: #E41E26; }
+        .line-pill.rer-a { background-color: var(--rer-a-color); }
+        .line-pill.bus { background-color: var(--bus-color); }
         .destination-group {
             padding: 1rem 0;
             border-bottom: 1px solid var(--border-color);
@@ -169,7 +182,7 @@
         #weather-desc { color: var(--text-muted-color); }
         .best-option { display: flex; align-items: center; gap: 0.75rem; }
         .best-option .tag { background: var(--primary-color); color: white; padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: bold; }
-        .velib-station { display: flex; justify-content: space-between; padding: 0.25rem 0; }
+        .velib-station { display: flex; justify-content: space-between; padding: 0.25rem 0; color: var(--velib-color); }
         
         /* News */
         .news-card { position: relative; min-height: 100px; }
@@ -178,6 +191,10 @@
         .news-card.active { opacity: 1; }
         .news-title { font-weight: bold; margin-bottom: 0.25rem; }
         .news-desc { font-size: 0.85rem; color: var(--text-muted-color); }
+        
+        /* PMU */
+        .pmu-race { display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0; border-bottom:1px solid var(--border-color); }
+        .pmu-time { color: var(--text-muted-color); font-weight:bold; }
     </style>
 <script type="importmap">
 {
@@ -242,6 +259,10 @@
                 <div class="velib-station"><span>Hippodrome</span> <strong id="velib-vincennes">--</strong></div>
                 <div class="velib-station"><span>École du Breuil</span> <strong id="velib-breuil">--</strong></div>
             </section>
+            <section class="card">
+                <h2>🐎 Courses PMU du jour</h2>
+                <div id="pmu-body">Chargement…</div>
+            </section>
             <section class="card news-card">
                 <h2>📰 Actualités</h2>
                 <div id="news-carousel">Chargement…</div>
@@ -292,7 +313,7 @@
         function setLastUpdate(){ const el=document.getElementById("lastUpdate"); if(el) el.textContent=`Maj ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`; }
 
         // === Référentiel lignes (couleurs IDFM) ===
-        function normaliseColor(hex){ if(!hex) return null; const c=hex.toString().trim().replace(/^#/,""); return /^[0-9a-fA-F]{6}$/.test(c)?`#${c}`:null; }
+        function normaliseColor(hex){ if(!hex) return null; const c=hex.toString().trim().replace(/^#/,''); return /^[0-9a-fA-F]{6}$/.test(c)?`#${c}`:null; }
         function fallbackLineMeta(id){ return { id, code:id, color:"#2450a4", textColor:"#fff" }; }
         async function fetchLineMetadata(lineId){
           if(!lineId) return fallbackLineMeta(lineId);
@@ -406,7 +427,7 @@
           const byDest = {};
           visits.forEach(v=>{ if(!byDest[v.dest]) byDest[v.dest]=[]; byDest[v.dest].push(v); });
           
-          const rerMeta = { id: 'RER_A', code: 'A', color: '#E41E26', textColor: '#fff' };
+          const rerMeta = { id: 'RER_A', code: 'A', color: getComputedStyle(document.documentElement).getPropertyValue('--rer-a-color').trim() || '#E41E26', textColor: '#fff' };
 
           Object.entries(byDest).forEach(([dest, departures])=>{
             renderDestinationGroup(cont, rerMeta, dest, departures);
@@ -511,7 +532,7 @@
           const MARCHE=15, VELIB=6, BUS_TRAVEL=5;
           let velibOK=false;
           try{
-            const d=await fetchJSON(`https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/records?where=stationcode%3D${encodeURIComponent(VELIB_STATIONS.VINCENNES)}&limit=1`);
+            const d=await fetchJSON(PROXY + encodeURIComponent(`https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/records?where=stationcode%3D${encodeURIComponent(VELIB_STATIONS.VINCENNES)}&limit=1`));
             const st=d?.results?.[0]; velibOK=((st?.mechanical_bikes||0)+(st?.ebike_bikes||0))>0;
           }catch{}
 
@@ -572,6 +593,27 @@
           }
         }
 
+        // === PMU ===
+        async function refreshPMU(){
+          const container = document.getElementById('pmu-body');
+          if(!container) return;
+          container.textContent = 'Chargement…';
+          const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+          const url = PROXY + encodeURIComponent(`https://turfinfo.api.pmu.fr/rest/client/7/programme/${today}`);
+          const data = await fetchJSON(url, 15000);
+          if(!data){ container.textContent='Indisponible'; return; }
+          const courses = data?.programme?.courses || data?.programme?.reunions?.flatMap(r=>r.courses)||[];
+          if(!courses.length){ container.textContent = "Aucune course aujourd'hui"; return; }
+          const items = courses.slice(0,6).map(c=>{
+            const nr = (c.numReunion ?? c.reunion ?? '?');
+            const nc = (c.numCourse ?? c.course ?? '?');
+            const lib = c.libelleCourse || c.libelle || '';
+            const h = c.heureDepart || c.depart || '';
+            return `<div class="pmu-race"><strong>R${nr}C${nc}</strong><span>${lib}</span><span class="pmu-time">${h}</span></div>`;
+          }).join('');
+          container.innerHTML = items;
+        }
+
         // === Actus ===
         async function refreshNews(){
           const xml=await fetchText(PROXY+encodeURIComponent(RSS_URL),15000); let items=[];
@@ -623,6 +665,7 @@
           setInterval(refreshHoroscopeCycle, 60 * 1000);
           setInterval(refreshSaint, 60 * 60 * 1000);
           setInterval(fetchGeneralMessagesBanner, 5 * 60 * 1000);
+          setInterval(refreshPMU, 15 * 60 * 1000);
           setInterval(() => { updateTicker(); setLastUpdate(); }, 10 * 1000);
         }
 
@@ -637,6 +680,7 @@
             computeBestRouteJoinville(),
             refreshVelib(),
             refreshWeather(),
+            refreshPMU(),
             refreshNews(),
             refreshHoroscopeCycle(),
             refreshSaint(),
