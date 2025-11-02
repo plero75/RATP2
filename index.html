@@ -598,7 +598,11 @@
           const container = document.getElementById('pmu-body');
           if(!container) return;
           container.textContent = 'Chargement…';
-          const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+const now = new Date();
+const day = String(now.getDate()).padStart(2, '0');
+const month = String(now.getMonth() + 1).padStart(2, '0');
+const year = String(now.getFullYear());
+const today = day + month + year;
           const url = PROXY + encodeURIComponent(`https://offline.turfinfo.api.pmu.fr/rest/client/7/programme/${today}`);
           const data = await fetchJSON(url, 15000);
           if(!data){ container.textContent='Indisponible'; return; }
