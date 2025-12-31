@@ -8,9 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 
 const TrafficEventItem: React.FC<{ event: TrafficEvent }> = ({ event }) => {
-  // Fix: The `locale` option is not recognized by the current TypeScript definition for `FormatDistanceOptions`,
-  // likely due to outdated type definitions. Casting to `any` bypasses the check, enabling French locale.
-  const timeAgo = formatDistanceToNow(new Date(event.datedebut), { addSuffix: true, locale: fr } as any);
+  const timeAgo = formatDistanceToNow(new Date(event.datedebut), { addSuffix: true, locale: fr });
   const type_color = event.type === 'Manifestation' ? 'text-orange-300' :
                      event.type === 'Travaux' ? 'text-yellow-300' : 'text-sky-300';
   
