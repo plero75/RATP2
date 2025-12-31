@@ -22,7 +22,7 @@ const App: React.FC = () => {
     >
       <div
         ref={containerRef}
-        className="flex flex-col w-full h-full max-w-[1400px] px-2 md:px-4"
+        className="flex flex-col w-full max-w-[1400px] px-2 md:px-4"
         style={{
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
