@@ -15,6 +15,7 @@ export interface TransportConfig {
   lineId?: string; // Made optional for bus hubs
   label: string;
   omitLineRef?: boolean;
+  hubLines?: { lineId: string; label: string }[];
 }
 
 // ✅ Données statiques GTFS pour les premiers/derniers départs
@@ -107,6 +108,21 @@ export interface WeatherResponse {
   hourly?: {
     time: string[];
     temperature_2m: number[];
+    weathercode: number[];
+  };
+  daily?: {
+    time: string[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    weathercode: number[];
+  };
+}
+
+export interface SaintResponse {
+  data?: {
+    nameday?: {
+      fr?: string;
+    };
   };
 }
 
