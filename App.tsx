@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Clock } from './components/Clock';
+import { HeaderBar } from './components/HeaderBar';
 import { TransportWidget } from './components/TransportWidget';
 import { WeatherWidget } from './components/WeatherWidget';
 import { VelibWidget } from './components/VelibWidget';
@@ -17,7 +18,7 @@ const App: React.FC = () => {
 
   return (
     <main
-      className="bg-[#0d1b2a] text-white font-sans w-screen h-screen flex flex-col overflow-hidden"
+      className="bg-[#0d1b2a] text-white font-sans w-screen h-screen flex items-start justify-center overflow-hidden"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <div
