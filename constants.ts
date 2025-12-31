@@ -100,18 +100,39 @@ export const TRANSPORT_CONFIG = {
   JOINVILLE_HUB_GARE: { 
     stopAreaId: STOPS.JOINVILLE_RER.BUS_77[0], // stop 39406
     label: 'Bus - Arrêt Gare',
+    hubLines: [
+      { lineId: LINE_REFS.BUS_77, label: 'Bus 77' },
+      { lineId: LINE_REFS.BUS_201, label: 'Bus 201' },
+    ],
   },
   JOINVILLE_HUB_GALLIENI: {
     stopAreaId: STOPS.JOINVILLE_RER.BUS_108[0], // stop 39407
     label: 'Bus - Arrêt Av. Gallieni',
+    hubLines: [
+      { lineId: LINE_REFS.BUS_101, label: 'Bus 101' },
+      { lineId: LINE_REFS.BUS_106, label: 'Bus 106' },
+      { lineId: LINE_REFS.BUS_108, label: 'Bus 108' },
+      { lineId: LINE_REFS.BUS_110, label: 'Bus 110' },
+    ],
   },
   HIPPODROME_HUB: {
     stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_77[0], // stop 463641
     label: 'Bus - Arrêt Hippodrome',
+    hubLines: [
+      { lineId: LINE_REFS.BUS_77, label: 'Bus 77' },
+      { lineId: LINE_REFS.BUS_106, label: 'Bus 106' },
+      { lineId: LINE_REFS.N33, label: 'Noctilien N33' },
+      { lineId: LINE_REFS.N71, label: 'Noctilien N71' },
+    ],
   },
   ECOLE_DU_BREUIL_HUB: {
     stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_77[0], // stop 463644
     label: 'Bus - Arrêt École du Breuil',
+    hubLines: [
+      { lineId: LINE_REFS.BUS_77, label: 'Bus 77' },
+      { lineId: LINE_REFS.BUS_201, label: 'Bus 201' },
+      { lineId: LINE_REFS.N33, label: 'Noctilien N33' },
+    ],
   },
 } as const;
 
@@ -124,6 +145,9 @@ export const WEATHER_PARAMS = {
   latitude: 48.827,
   longitude: 2.45,
   current_weather: "true",
+  hourly: "temperature_2m,weathercode",
+  daily: "temperature_2m_max,temperature_2m_min,weathercode",
+  forecast_days: "2",
   timezone: "Europe/Paris",
 };
 
@@ -173,6 +197,26 @@ export const REFRESH_INTERVALS = {
   VELIB: 60000,
   NEWS: 180000,
   PMU: 60000,
+  SAINT: 21600000,
+};
+
+// =====================================================
+// ✨ Saint du jour
+// =====================================================
+export const SAINT_API_URL = "https://nameday.abalin.net/api/V1/today?country=fr";
+
+// =====================================================
+// 🕒 Horaires de reprise (estimation)
+// =====================================================
+export const SERVICE_REPRISE_BY_LINE: Record<string, string> = {
+  [LINE_REFS.BUS_77]: "05:30",
+  [LINE_REFS.BUS_101]: "05:30",
+  [LINE_REFS.BUS_106]: "05:30",
+  [LINE_REFS.BUS_108]: "05:30",
+  [LINE_REFS.BUS_110]: "05:30",
+  [LINE_REFS.BUS_201]: "05:30",
+  [LINE_REFS.N33]: "00:30",
+  [LINE_REFS.N71]: "00:30",
 };
 
 // =====================================================

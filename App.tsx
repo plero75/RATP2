@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock } from './components/Clock';
+import { HeaderBar } from './components/HeaderBar';
 import { TransportWidget } from './components/TransportWidget';
 import { WeatherWidget } from './components/WeatherWidget';
 import { VelibWidget } from './components/VelibWidget';
@@ -28,56 +28,40 @@ const App: React.FC = () => {
           height: `${100 / scale}%`,
         }}
       >
-        <header className="flex justify-between items-center p-2 md:p-3 border-b border-gray-700 flex-shrink-0 gap-2">
-          <h1 className="text-lg md:text-2xl font-bold tracking-tight text-[#e0e1dd] leading-tight">
-            Dashboard VHP — Paris-Vincennes
-          </h1>
-          <Clock />
-        </header>
+        <HeaderBar />
 
-        <div className="flex-grow p-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 overflow-hidden min-h-0">
-          {/* Colonne 1: Infos Locales & Événements */}
-          <div className="flex flex-col gap-2 min-h-0">
+        <div className="flex-grow p-3 grid grid-cols-1 xl:grid-cols-[1.1fr_1.4fr_1fr] gap-3 overflow-hidden min-h-0">
+          {/* Colonne 1: Infos locales */}
+          <div className="flex flex-col gap-3 min-h-0">
             <TrafficWidget />
+            <WeatherWidget />
             <ItineraryWidget />
             <VelibWidget stationIds={Object.values(VELIB_STATION_IDS).map(String)} />
-            <WeatherWidget />
             <PmuWidget />
           </div>
 
-          {/* Colonne 2: Hub de Transports */}
-          <div className="flex flex-col gap-2 p-1 min-h-0">
-            {/* Section Gare de Joinville-le-Pont */}
-            <div className="flex flex-col gap-2">
-              <h2 className="text-lg font-bold text-sky-300 bg-[#0d1b2a] py-1">Gare de Joinville-le-Pont</h2>
+          {/* Colonne 2: Transports */}
+          <div className="flex flex-col gap-3 min-h-0">
+            <section className="flex flex-col gap-2">
+              <h2 className="text-lg font-bold text-sky-300">Gare de Joinville-le-Pont</h2>
               <TransportWidget config={TRANSPORT_CONFIG.RER_A} icon={<RerAIcon />} />
-              <TransportWidget
-                config={TRANSPORT_CONFIG.JOINVILLE_HUB_GARE}
-                icon={<BusIcon />}
-                title="Bus - Arrêt Gare"
-              />
-              <TransportWidget
-                config={TRANSPORT_CONFIG.JOINVILLE_HUB_GALLIENI}
-                icon={<BusIcon />}
-                title="Bus - Arrêt Av. Gallieni"
-              />
-            </div>
+              <TransportWidget config={TRANSPORT_CONFIG.JOINVILLE_HUB_GARE} icon={<BusIcon />} />
+              <TransportWidget config={TRANSPORT_CONFIG.JOINVILLE_HUB_GALLIENI} icon={<BusIcon />} />
+            </section>
 
-            {/* Section Hippodrome de Vincennes */}
-            <div className="flex flex-col gap-2 mt-2">
-              <h2 className="text-lg font-bold text-sky-300 bg-[#0d1b2a] py-1">Hippodrome de Vincennes</h2>
-              <TransportWidget config={TRANSPORT_CONFIG.HIPPODROME_HUB} icon={<BusIcon />} title="Arrêt de Bus" />
-            </div>
+            <section className="flex flex-col gap-2">
+              <h2 className="text-lg font-bold text-sky-300">Hippodrome de Vincennes</h2>
+              <TransportWidget config={TRANSPORT_CONFIG.HIPPODROME_HUB} icon={<BusIcon />} />
+            </section>
 
-            {/* Section École du Breuil */}
-            <div className="flex flex-col gap-2 mt-2">
-              <h2 className="text-lg font-bold text-sky-300 bg-[#0d1b2a] py-1">École du Breuil</h2>
-              <TransportWidget config={TRANSPORT_CONFIG.ECOLE_DU_BREUIL_HUB} icon={<BusIcon />} title="Arrêt de Bus" />
-            </div>
+            <section className="flex flex-col gap-2">
+              <h2 className="text-lg font-bold text-sky-300">École du Breuil</h2>
+              <TransportWidget config={TRANSPORT_CONFIG.ECOLE_DU_BREUIL_HUB} icon={<BusIcon />} />
+            </section>
           </div>
 
-          {/* Colonne 3 optionnelle : mise en grille pour petits écrans */}
-          <div className="hidden xl:flex flex-col gap-2 min-h-0">
+          {/* Colonne 3: Actualités */}
+          <div className="hidden xl:flex flex-col gap-3 min-h-0">
             <NewsTicker />
           </div>
         </div>
