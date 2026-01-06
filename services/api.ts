@@ -28,44 +28,45 @@ import { format } from 'date-fns';
 // cache générique en mémoire (front)
 const cache: Record<string, { data: any; ts: number }> = {};
 
-// Throttling queue for PRIM API requests
-const requestQueue: Array<() => Promise<any>> = [];
-let isProcessing = false;
-const THROTTLE_DELAY = 100; // 100ms between requests
+// Sequential throttling for PRIM API requests
+let lastRequestTime = 0;
+const THROTTLE_DELAY = 200; // 200ms between requests (more conservative)
+const REQUEST_TIMEOUT = 5000; // 5s timeout per request
 
-async function processQueue() {
-  if (isProcessing || requestQueue.length === 0) return;
-  
-  isProcessing = true;
-  
-  while (requestQueue.length > 0) {
-    const request = requestQueue.shift();
-    if (request) {
-      try {
-        await request();
-      } catch (e) {
-        // Error handled by caller
-      }
-      // Wait before next request to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, THROTTLE_DELAY));
-    }
-  }
-  
-  isProcessing = false;
-}
+// Semaphore to ensure sequential execution
+let throttlePromise = Promise.resolve();
 
 function throttledFetch<T>(fetcher: () => Promise<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    requestQueue.push(async () => {
-      try {
-        const result = await fetcher();
-        resolve(result);
-      } catch (error) {
-        reject(error);
-      }
+  // Chain requests sequentially with delay
+  throttlePromise = throttlePromise.then(() => {
+    // Wait minimum time since last request
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    const delayNeeded = Math.max(0, THROTTLE_DELAY - timeSinceLastRequest);
+    
+    return new Promise<T>((resolve, reject) => {
+      setTimeout(() => {
+        lastRequestTime = Date.now();
+        
+        // Add timeout to prevent hanging
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Request timeout'));
+        }, REQUEST_TIMEOUT);
+        
+        fetcher()
+          .then(result => {
+            clearTimeout(timeoutId);
+            resolve(result);
+          })
+          .catch(error => {
+            clearTimeout(timeoutId);
+            reject(error);
+          });
+      }, delayNeeded);
     });
-    processQueue();
   });
+  
+  return throttlePromise;
 }
 
 // wrapper de cache
