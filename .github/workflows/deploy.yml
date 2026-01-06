@@ -4,6 +4,11 @@ on:
   push:
     branches: [codex/rendre-la-page-responsive-sans-defilement]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
