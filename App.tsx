@@ -7,7 +7,6 @@ import { VelibWidget } from './components/VelibWidget';
 import { PmuWidget } from './components/PmuWidget';
 import { NewsTicker } from './components/NewsTicker';
 import { ItineraryWidget } from './components/ItineraryWidget';
-import { TrafficWidget } from './components/TrafficWidget';
 import { TRANSPORT_CONFIG, VELIB_STATION_IDS } from './constants';
 import { RerAIcon, BusIcon } from './components/icons';
 import { useViewportScale } from './hooks/useViewportScale';
@@ -39,7 +38,7 @@ const App: React.FC = () => {
         <div className="flex-grow p-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 overflow-hidden min-h-0">
           {/* Colonne 1: Infos Locales & Événements */}
           <div className="flex flex-col gap-2 min-h-0">
-            <TrafficWidget />
+            {/* TrafficWidget disabled - API blocked & causes browser crash */}
             <ItineraryWidget />
             <VelibWidget stationIds={Object.values(VELIB_STATION_IDS).map(String)} />
             <WeatherWidget />
