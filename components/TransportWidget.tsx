@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useData } from '../hooks/useData';
 import { fetchTransportData, fetchTrafficAlerts } from '../services/api';
-import { REFRESH_INTERVALS, REVERSE_LINE_REFS } from '../constants';
+import { REFRESH_INTERVALS, REVERSE_LINE_REFS, SERVICE_REPRISE_BY_LINE } from '../constants';
 import type {
   TransportConfig,
   MonitoredStopVisit,
@@ -89,8 +89,23 @@ const SingleLineView: React.FC<{ visits: MonitoredStopVisit[], lineId: string, l
 
     if (visitsByDestination.length === 0) return null;
 
+    const alertSummary = summarizeAlerts(alertMessages);
+
     return (
         <>
+            {alertSummary && (
+              <div className="mb-2 flex flex-col gap-1 rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-200">
+                <div className="flex items-center gap-2">
+                  <AlertBadge type={alertSummary.type} />
+                  <span className="font-semibold">Information ligne</span>
+                </div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {alertSummary.details.map((detail, index) => (
+                    <li key={index}>{detail}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="space-y-2">
                 {visitsByDestination.map(([destination, destVisits]) => {
                     const now = new Date();
@@ -117,7 +132,7 @@ const SingleLineView: React.FC<{ visits: MonitoredStopVisit[], lineId: string, l
                     if (departures.length === 0) return null;
 
                     return (
-                        <div key={destination} className="grid grid-cols-[1fr_auto] gap-2 items-center p-2 rounded-md bg-black/20">
+                        <div key={destination} className="grid grid-cols-[1fr_auto] gap-2 items-center p-2 rounded-md bg-black/20 border border-white/10">
                             <div className="truncate text-gray-200 font-semibold text-sm" title={destination}>{destination}</div>
                             <div className="flex gap-1.5 items-center justify-end">
                                 {departures.map((dep, index) => (
@@ -197,6 +212,12 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
   );
   const { data: alertData } = useData(fetchAlertsCb, REFRESH_INTERVALS.TRAFFIC_ALERTS);
 
+  const fetchHubAlertsCb = useCallback(async () => {
+    if (!config.hubLines?.length) return [];
+    return Promise.all(config.hubLines.map((line) => fetchTrafficAlerts(line.lineId)));
+  }, [config.hubLines]);
+  const { data: hubAlertData } = useData(fetchHubAlertsCb, REFRESH_INTERVALS.TRAFFIC_ALERTS);
+
   const allVisits = useMemo(() => 
     transportData?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [],
   [transportData]);
@@ -226,7 +247,9 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
   const renderContent = () => {
     if (isLoading && allVisits.length === 0) return <p className="text-gray-400 text-center text-sm py-2">Chargement...</p>;
     if (transportError) return <p className="text-red-400 text-center text-sm py-2">Erreur de chargement.</p>;
-    if (allVisits.length === 0) return <p className="text-gray-400 text-center text-sm py-2">Aucun passage prévu.</p>;
+    if (allVisits.length === 0 && config.lineId) {
+      return <EmptyLineState lineId={config.lineId} messages={alertMessages} />;
+    }
     
     // Multi-line view (plusieurs lignes dans le même widget)
     if (lineIds.length > 1 || (!config.lineId && config.lines)) {

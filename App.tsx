@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Clock } from './components/Clock';
+import { HeaderBar } from './components/HeaderBar';
 import { TransportWidget } from './components/TransportWidget';
 import { WeatherWidget } from './components/WeatherWidget';
 import { VelibWidget } from './components/VelibWidget';
@@ -44,6 +45,18 @@ const App: React.FC = () => {
             <WeatherWidget />
             <PmuWidget />
           </div>
+        
+          {/* Colonne 2: Hub de Transports */}
+          <div className="flex flex-col gap-2 overflow-y-auto p-2">
+            {/* Section Gare de Joinville-le-Pont */}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-bold text-sky-300 sticky top-0 bg-[#0d1b2a] py-1 z-10">
+                Gare de Joinville-le-Pont
+              </h2>
+              <TransportWidget config={TRANSPORT_CONFIG.RER_A} icon={<RerAIcon />} />
+              <TransportWidget config={TRANSPORT_CONFIG.JOINVILLE_HUB_GARE} icon={<BusIcon />} title="Bus - Arrêt Gare" />
+              <TransportWidget config={TRANSPORT_CONFIG.JOINVILLE_HUB_GALLIENI} icon={<BusIcon />} title="Bus - Arrêt Av. Gallieni" />
+            </div>
 
           {/* Colonne 2: Hub de Transports */}
           <div className="flex flex-col gap-2 p-1 min-h-0">

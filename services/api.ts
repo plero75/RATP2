@@ -10,11 +10,13 @@ import {
   NEWS_FEED_URL,
   PARIS_TRAFFIC_API_BASE_URL,
   PARIS_TRAFFIC_API_PARAMS,
+  SAINT_API_URL,
 } from '../constants';
 import type {
   GeneralMessageResponse,
   NewsItem,
   PmuResponse,
+  SaintResponse,
   StopMonitoringResponse,
   TrafficApiResponse,
   VehicleJourneyResponse,
@@ -175,4 +177,9 @@ export async function fetchTrafficEvents() {
     const fullUrl = `${PARIS_TRAFFIC_API_BASE_URL}?${params}`;
     const url = PROXY_URL + encodeURIComponent(fullUrl);
     return safeFetch<TrafficApiResponse>(url);
+}
+
+// Saint du jour
+export async function fetchSaintOfDay() {
+  return safeFetch<SaintResponse>(SAINT_API_URL);
 }

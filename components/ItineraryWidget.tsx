@@ -2,12 +2,10 @@ import React, { useMemo, useCallback } from 'react';
 import { useData } from '../hooks/useData';
 import { fetchTransportData } from '../services/api';
 import { TRANSPORT_CONFIG, ITINERARY_CONSTANTS, REFRESH_INTERVALS } from '../constants';
-// Fix: Replaced `parseISO` with `new Date()` for compatibility as `parseISO` is not available.
 import { differenceInSeconds, isValid } from 'date-fns';
 import { RerAIcon, BusIcon, WalkIcon, BikeIcon } from './icons';
 
 const getMinutesUntil = (to: string): number => {
-    // Fix: Replaced `parseISO` with `new Date()` for compatibility.
     const date = new Date(to);
     if (!isValid(date)) return Infinity;
     return Math.max(0, Math.round(differenceInSeconds(date, new Date()) / 60));
