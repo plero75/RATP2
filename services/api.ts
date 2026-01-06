@@ -28,6 +28,46 @@ import { format } from 'date-fns';
 // cache générique en mémoire (front)
 const cache: Record<string, { data: any; ts: number }> = {};
 
+// Throttling queue for PRIM API requests
+const requestQueue: Array<() => Promise<any>> = [];
+let isProcessing = false;
+const THROTTLE_DELAY = 100; // 100ms between requests
+
+async function processQueue() {
+  if (isProcessing || requestQueue.length === 0) return;
+  
+  isProcessing = true;
+  
+  while (requestQueue.length > 0) {
+    const request = requestQueue.shift();
+    if (request) {
+      try {
+        await request();
+      } catch (e) {
+        // Error handled by caller
+      }
+      // Wait before next request to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, THROTTLE_DELAY));
+    }
+  }
+  
+  isProcessing = false;
+}
+
+function throttledFetch<T>(fetcher: () => Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    requestQueue.push(async () => {
+      try {
+        const result = await fetcher();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    });
+    processQueue();
+  });
+}
+
 // wrapper de cache
 export async function cachedFetch<T>(
   key: string,
@@ -55,54 +95,59 @@ export async function fetchTransportData(
   lineId?: string,
   omitLineRef?: boolean
 ) {
-  // Hubs (no lineId) need all data for a specific stop -> stop-monitoring is efficient
-  if (!lineId) {
-    const params: Record<string, string> = { MonitoringRef: stopAreaId };
-    const url = primUrl("/marketplace/stop-monitoring", params);
-    return safeFetch<StopMonitoringResponse>(url);
-  }
-
-  // Specific line queries -> requete-ligne as requested
-  // This endpoint fetches data for the entire line.
-  const params: Record<string, string> = { LineRef: lineId };
-  const url = primUrl("/marketplace/requete-ligne", params);
-  const response = await safeFetch<StopMonitoringResponse>(url);
-
-  // We must then filter the results for the specific stop(s) we need.
-  // This handles both single-stop requests and multi-stop ones like RER A.
-  const stopAreaIds = stopAreaId.split(',');
-  if (response?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit) {
-    const allVisits = response.Siri.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit;
-    const filteredVisits = allVisits.filter(visit => 
-        stopAreaIds.includes(visit.MonitoringRef.value)
-    );
-    
-    // Reconstruct the response with only the filtered visits
-    const filteredResponse = JSON.parse(JSON.stringify(response));
-    const delivery = filteredResponse.Siri.ServiceDelivery.StopMonitoringDelivery[0];
-
-    if (delivery) {
-      delivery.MonitoredStopVisit = filteredVisits;
-      
-      // Sort the final list of visits chronologically by departure time
-      delivery.MonitoredStopVisit.sort((a, b) => {
-        const timeA = a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime || a.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
-        const timeB = b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime || b.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
-        return new Date(timeA).getTime() - new Date(timeB).getTime();
-      });
+  // Use throttled fetch for PRIM API
+  return throttledFetch(async () => {
+    // Hubs (no lineId) need all data for a specific stop -> stop-monitoring is efficient
+    if (!lineId) {
+      const params: Record<string, string> = { MonitoringRef: stopAreaId };
+      const url = primUrl("/marketplace/stop-monitoring", params);
+      return safeFetch<StopMonitoringResponse>(url);
     }
 
-    return filteredResponse;
-  }
+    // Specific line queries -> requete-ligne as requested
+    // This endpoint fetches data for the entire line.
+    const params: Record<string, string> = { LineRef: lineId };
+    const url = primUrl("/marketplace/requete-ligne", params);
+    const response = await safeFetch<StopMonitoringResponse>(url);
 
-  return response;
+    // We must then filter the results for the specific stop(s) we need.
+    // This handles both single-stop requests and multi-stop ones like RER A.
+    const stopAreaIds = stopAreaId.split(',');
+    if (response?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit) {
+      const allVisits = response.Siri.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit;
+      const filteredVisits = allVisits.filter(visit => 
+          stopAreaIds.includes(visit.MonitoringRef.value)
+      );
+      
+      // Reconstruct the response with only the filtered visits
+      const filteredResponse = JSON.parse(JSON.stringify(response));
+      const delivery = filteredResponse.Siri.ServiceDelivery.StopMonitoringDelivery[0];
+
+      if (delivery) {
+        delivery.MonitoredStopVisit = filteredVisits;
+        
+        // Sort the final list of visits chronologically by departure time
+        delivery.MonitoredStopVisit.sort((a, b) => {
+          const timeA = a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime || a.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
+          const timeB = b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime || b.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
+          return new Date(timeA).getTime() - new Date(timeB).getTime();
+        });
+      }
+
+      return filteredResponse;
+    }
+
+    return response;
+  });
 }
 
 
 // Desserte d'un véhicule (vehicle_journeys)
 export async function fetchVehicleJourney(vehicleJourneyRef: string) {
-  const url = primUrl("/marketplace/vehicle-journeys", { "DatedVehicleJourneyRef": vehicleJourneyRef });
-  return safeFetch<VehicleJourneyResponse>(url);
+  return throttledFetch(async () => {
+    const url = primUrl("/marketplace/vehicle-journeys", { "DatedVehicleJourneyRef": vehicleJourneyRef });
+    return safeFetch<VehicleJourneyResponse>(url);
+  });
 }
 
 // Alertes trafic (general-message) — cache 5 min
@@ -110,8 +155,10 @@ export async function fetchTrafficAlerts(lineId: string) {
   return cachedFetch<GeneralMessageResponse>(
     `alerts-${lineId}`,
     async () => {
-      const url = primUrl("/marketplace/general-message", { LineRef: lineId });
-      return safeFetch<GeneralMessageResponse>(url);
+      return throttledFetch(async () => {
+        const url = primUrl("/marketplace/general-message", { LineRef: lineId });
+        return safeFetch<GeneralMessageResponse>(url);
+      });
     },
     300_000 // 5 minutes
   );
