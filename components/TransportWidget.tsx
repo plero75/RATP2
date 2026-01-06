@@ -7,7 +7,6 @@ import type {
   MonitoredStopVisit,
   GeneralMessageResponse,
 } from '../types';
-// Fix: Replaced `parseISO` with `new Date()` for compatibility as `parseISO` is not available.
 import { differenceInSeconds, isValid, format } from 'date-fns';
 import { InfoIcon } from './icons';
 import { JourneyDetailsModal } from './JourneyDetailsModal';
@@ -20,7 +19,6 @@ interface TransportWidgetProps {
 
 const parseSafeISO = (dateString?: string): Date | null => {
   if (!dateString) return null;
-  // Fix: Replaced `parseISO` with `new Date()` for compatibility.
   const date = new Date(dateString);
   return isValid(date) ? date : null;
 };
@@ -31,7 +29,7 @@ const getMinutesUntil = (from: Date, to: Date): number => {
 
 const getLineLabelFromRef = (lineRef: string): string => {
     const key = REVERSE_LINE_REFS[lineRef];
-    if (!key) return `Ligne ${lineRef.slice(-5, -1)}`; // Fallback
+    if (!key) return `Ligne ${lineRef.slice(-5, -1)}`;
     
     if (key.startsWith('BUS_')) return `Bus ${key.replace('BUS_', '')}`;
     if (key.startsWith('N')) return `Noctilien ${key}`;
@@ -39,69 +37,6 @@ const getLineLabelFromRef = (lineRef: string): string => {
 
     return key;
 }
-
-const normalizeTime = (value: string) => {
-  const match = value.match(/(\d{1,2})[h:](\d{2})/i);
-  if (!match) return null;
-  const hour = match[1].padStart(2, '0');
-  return `${hour}:${match[2]}`;
-};
-
-const pickResumeTime = (messages: string[], lineId?: string) => {
-  for (const message of messages) {
-    const time = normalizeTime(message);
-    if (time) return time;
-  }
-  if (lineId && SERVICE_REPRISE_BY_LINE[lineId]) {
-    return SERVICE_REPRISE_BY_LINE[lineId];
-  }
-  return null;
-};
-
-const getAlertType = (message: string) => {
-  if (/non desserv|non-desserv/i.test(message)) return 'non-desservi';
-  if (/travaux|chantier/i.test(message)) return 'travaux';
-  if (/interruption|incident|panne|perturb/i.test(message)) return 'interruption';
-  if (/fin de service|service termin|dernier d[ée]part/i.test(message)) return 'service-termine';
-  return 'info';
-};
-
-const summarizeAlerts = (messages: string[]) => {
-  if (messages.length === 0) return null;
-  const priority = ['non-desservi', 'interruption', 'travaux', 'service-termine', 'info'] as const;
-  const types = messages.map(getAlertType);
-  const type = priority.find((value) => types.includes(value)) ?? 'info';
-  return { type, details: messages };
-};
-
-const AlertBadge: React.FC<{ type: string }> = ({ type }) => {
-  const label =
-    type === 'non-desservi'
-      ? 'Arrêt non desservi'
-      : type === 'interruption'
-      ? 'Interruption'
-      : type === 'travaux'
-      ? 'Travaux'
-      : type === 'service-termine'
-      ? 'Service terminé'
-      : 'Info';
-  const tone =
-    type === 'non-desservi'
-      ? 'bg-red-500/20 text-red-200 border-red-500/40'
-      : type === 'interruption'
-      ? 'bg-orange-500/20 text-orange-200 border-orange-500/40'
-      : type === 'travaux'
-      ? 'bg-yellow-500/20 text-yellow-200 border-yellow-500/40'
-      : type === 'service-termine'
-      ? 'bg-slate-500/20 text-slate-200 border-slate-500/40'
-      : 'bg-sky-500/20 text-sky-200 border-sky-500/40';
-
-  return (
-    <span className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full border ${tone}`}>
-      {label}
-    </span>
-  );
-};
 
 const DeparturePill: React.FC<{departure: any}> = ({ departure: dep }) => {
     const isImminent = !dep.isCancelled && dep.remainingMinutes < 2;
@@ -138,13 +73,7 @@ const DeparturePill: React.FC<{departure: any}> = ({ departure: dep }) => {
     );
 };
 
-
-const SingleLineView: React.FC<{
-  visits: MonitoredStopVisit[];
-  lineId: string;
-  lineLabel: string;
-  alertMessages?: string[];
-}> = ({ visits, lineId, lineLabel, alertMessages = [] }) => {
+const SingleLineView: React.FC<{ visits: MonitoredStopVisit[], lineId: string, lineLabel: string }> = ({ visits, lineId, lineLabel }) => {
     const [selectedJourney, setSelectedJourney] = useState<{ref: string; destination: string} | null>(null);
 
     const visitsByDestination = useMemo(() => {
@@ -237,48 +166,50 @@ const SingleLineView: React.FC<{
     );
 };
 
-const EmptyLineState: React.FC<{ lineId?: string; messages: string[] }> = ({ lineId, messages }) => {
-  const summary = summarizeAlerts(messages);
-  const resumeTime = pickResumeTime(messages, lineId);
-  const title = summary?.type === 'non-desservi'
-    ? 'Arrêt non desservi'
-    : summary?.type === 'interruption'
-    ? 'Interruption en cours'
-    : summary?.type === 'travaux'
-    ? 'Travaux en cours'
-    : 'Service terminé';
-
-  return (
-    <div className="flex flex-col gap-2 rounded-md border border-white/10 bg-black/20 p-3 text-sm text-gray-200">
-      <div className="flex items-center gap-2">
-        <AlertBadge type={summary?.type ?? 'service-termine'} />
-        <span className="font-semibold">{title}</span>
-      </div>
-      {summary?.details?.length ? (
-        <ul className="list-disc pl-5 space-y-1 text-xs">
-          {summary.details.map((detail, index) => (
-            <li key={index}>{detail}</li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-xs text-gray-400">Aucune information de passage en temps réel.</p>
-      )}
-      {resumeTime && (
-        <p className="text-xs text-sky-200 font-semibold">Reprise estimée : {resumeTime}</p>
-      )}
-    </div>
-  );
-};
-
-
 export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, title }) => {
-  const fetchTransport = useCallback(() => {
-    return fetchTransportData(config.stopAreaId, config.lineId, config.omitLineRef);
-  }, [config.stopAreaId, config.lineId, config.omitLineRef]);
+  // Gérer à la fois config.lineId (ancien) et config.lines (nouveau multi-ligne)
+  const lineIds = useMemo(() => {
+    if (config.lines && config.lines.length > 0) {
+      return config.lines.map(line => line.id);
+    }
+    return config.lineId ? [config.lineId] : [];
+  }, [config.lines, config.lineId]);
+
+  const fetchTransport = useCallback(async () => {
+    if (lineIds.length === 0) {
+      // Aucune ligne spécifiée = récupérer toutes les lignes de l'arrêt
+      return fetchTransportData(config.stopAreaId, undefined, config.omitLineRef);
+    }
+
+    // Faire des appels PRIM pour chaque ligne et fusionner
+    const results = await Promise.all(
+      lineIds.map(lineId => fetchTransportData(config.stopAreaId, lineId, config.omitLineRef))
+    );
+
+    // Fusionner tous les résultats en un seul objet SIRI
+    const allVisits = results.flatMap(r => 
+      r?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []
+    );
+
+    return {
+      Siri: {
+        ServiceDelivery: {
+          StopMonitoringDelivery: [{
+            MonitoredStopVisit: allVisits
+          }]
+        }
+      }
+    };
+  }, [config.stopAreaId, lineIds, config.omitLineRef]);
   
   const { data: transportData, error: transportError, isLoading } = useData(fetchTransport, REFRESH_INTERVALS.TRANSPORT);
 
-  const fetchAlertsCb = useCallback(() => config.lineId ? fetchTrafficAlerts(config.lineId) : Promise.resolve(null), [config.lineId]);
+  // Récupérer les alertes pour chaque ligne
+  const firstLineId = lineIds[0];
+  const fetchAlertsCb = useCallback(() => 
+    firstLineId ? fetchTrafficAlerts(firstLineId) : Promise.resolve(null), 
+    [firstLineId]
+  );
   const { data: alertData } = useData(fetchAlertsCb, REFRESH_INTERVALS.TRAFFIC_ALERTS);
 
   const fetchHubAlertsCb = useCallback(async () => {
@@ -292,33 +223,17 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
   [transportData]);
 
   const visitsByLine = useMemo(() => {
-    if (config.lineId) {
-        return new Map([[config.lineId, allVisits]]);
+    if (lineIds.length === 1) {
+      return new Map([[lineIds[0], allVisits]]);
     }
     const groups = new Map<string, MonitoredStopVisit[]>();
     for (const visit of allVisits) {
-        const lineRef = visit.MonitoredVehicleJourney.LineRef.value;
-        if (!groups.has(lineRef)) groups.set(lineRef, []);
-        groups.get(lineRef)!.push(visit);
+      const lineRef = visit.MonitoredVehicleJourney.LineRef.value;
+      if (!groups.has(lineRef)) groups.set(lineRef, []);
+      groups.get(lineRef)!.push(visit);
     }
     return groups;
-  }, [allVisits, config.lineId]);
-
-  const hubAlertsByLine = useMemo(() => {
-    if (!config.hubLines?.length || !hubAlertData) return new Map<string, string[]>();
-    const messages = new Map<string, string[]>();
-    config.hubLines.forEach((line, index) => {
-      const response = hubAlertData?.[index] as GeneralMessageResponse | null;
-      const alerts =
-        response?.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage
-          ?.flatMap(info => info.Content?.Message ?? [])
-          .flatMap(msg => msg.MessageText ?? [])
-          .map(text => text.value)
-          .filter(Boolean) || [];
-      messages.set(line.lineId, alerts);
-    });
-    return messages;
-  }, [config.hubLines, hubAlertData]);
+  }, [allVisits, lineIds]);
   
   const alertMessages = useMemo(() => {
     return (alertData as GeneralMessageResponse | null)?.Siri?.ServiceDelivery
@@ -336,33 +251,24 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
       return <EmptyLineState lineId={config.lineId} messages={alertMessages} />;
     }
     
-    // Multi-line (Bus Hub) view
-    if (!config.lineId) {
-        const configuredLines = config.hubLines?.length
-          ? config.hubLines
-          : Array.from(visitsByLine.keys()).map((lineId) => ({ lineId, label: getLineLabelFromRef(lineId) }));
-
-        return (
-            <div className="space-y-3">
-                {configuredLines.map(({ lineId, label }) => {
-                    const visits = visitsByLine.get(lineId) ?? [];
-                    const lineAlerts = hubAlertsByLine.get(lineId) ?? [];
-                    return (
-                        <div key={lineId} className="space-y-2">
-                            <h3 className="font-bold text-base text-sky-300">{label}</h3>
-                            {visits.length > 0 ? (
-                              <SingleLineView visits={visits} lineId={lineId} lineLabel={label} alertMessages={lineAlerts} />
-                            ) : (
-                              <EmptyLineState lineId={lineId} messages={lineAlerts} />
-                            )}
-                        </div>
-                    )
-                })}
-            </div>
-        );
+    // Multi-line view (plusieurs lignes dans le même widget)
+    if (lineIds.length > 1 || (!config.lineId && config.lines)) {
+      return (
+        <div className="space-y-3">
+          {Array.from(visitsByLine.entries()).map(([lineId, visits]) => {
+            const lineLabel = getLineLabelFromRef(lineId);
+            return (
+              <div key={lineId}>
+                <h3 className="font-bold text-base text-sky-300 mb-1.5">{lineLabel}</h3>
+                <SingleLineView visits={visits} lineId={lineId} lineLabel={lineLabel} />
+              </div>
+            );
+          })}
+        </div>
+      );
     }
-    // Single line view
-    return <SingleLineView visits={allVisits} lineId={config.lineId} lineLabel={config.label} alertMessages={alertMessages} />;
+    // Single line view (une seule ligne)
+    return <SingleLineView visits={allVisits} lineId={lineIds[0]} lineLabel={config.label || ''} />;
   };
 
   return (
