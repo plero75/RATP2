@@ -1,20 +1,25 @@
 import { TransportConfig } from './types';
 
+// ===========================
 // URLs et Clés
+// ===========================
 export const PROXY_URL = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 export const PRIM_API_KEY = "7nAc6NHplCJtJ46Qw32QFtefq3TQEYrT";
 
-// Zones d'arrêt (StopPoints précis selon le fichier Excel)
+// ===========================
+// Zones d'arrêt (StopPoints)
+// ===========================
 export const STOP_AREAS = {
-  JOINVILLE_RER: "STIF:StopArea:SP:43135:", // Zone globale RER
-  // Quais bus spécifiques à Joinville
-  JOINVILLE_BUS_Q_39406: "STIF:StopPoint:Q:39406:", // Quai principal (77, 201, N33)
-  JOINVILLE_BUS_Q_39407: "STIF:StopPoint:Q:39407:", // Quai secondaire (101, 106, 108, 110, 112, 281)
+  JOINVILLE_RER: "STIF:StopArea:SP:43135:",
+  JOINVILLE_BUS_Q_39406: "STIF:StopPoint:Q:39406:",
+  JOINVILLE_BUS_Q_39407: "STIF:StopPoint:Q:39407:",
   HIPPODROME_Q: "STIF:StopPoint:Q:463641:",
   BREUIL_Q: "STIF:StopPoint:Q:463644:"
 };
 
-// Codes Lignes (Complets pour Joinville)
+// ===========================
+// Codes Lignes
+// ===========================
 export const LINES_CODE = { 
   RER_A: "C01742", 
   BUS_77: "C02251", 
@@ -56,15 +61,37 @@ export const SERVICE_REPRISE_BY_LINE: Record<string, {start: string; end: string
   N33: null
 };
 
+// ===========================
 // Vélib
+// ===========================
 export const VELIB_STATION_IDS = {
   HIPPODROME: 12163,
   PYRAMIDE: 12128,
 };
 
+export const VELIB_STATION_NAMES: Record<string, string> = {
+  "12163": "Hippodrome de Paris-Vincennes",
+  "12128": "Pyrénées",
+};
+
+// ===========================
+// Itinéraires
+// ===========================
+export const ITINERARY_CONSTANTS = {
+  BUS_TIME_HIPPODROME_TO_JOINVILLE_MIN: 12,
+  WALK_TIME_TO_JOINVILLE_MIN: 18,
+  BUS_TIME_HIPPODROME_TO_GARE_DE_LYON_MIN: 28,
+  TRANSFER_TIME_MIN: 3,
+  RER_TIME_JOINVILLE_TO_GARE_DE_LYON_MIN: 15,
+  VELIB_TIME_TO_GARE_DE_LYON_MIN: 22,
+  RER_TIME_JOINVILLE_TO_CHATELET_MIN: 22,
+  VELIB_TIME_TO_CHATELET_MIN: 28,
+};
+
+// ===========================
 // Configuration des Widgets
+// ===========================
 export const TRANSPORT_CONFIG: Record<string, TransportConfig> = {
-  // 1. RER A
   RER_A: {
     title: 'RER A - Gare de Joinville-le-Pont',
     stopAreaId: STOP_AREAS.JOINVILLE_RER,
@@ -74,7 +101,6 @@ export const TRANSPORT_CONFIG: Record<string, TransportConfig> = {
     ],
   },
   
-  // 2. Bus Joinville - Quai 1 (Principal)
   JOINVILLE_HUB_GARE: {
     title: 'Bus - Arrêt Gare (Quai 1)',
     stopAreaId: STOP_AREAS.JOINVILLE_BUS_Q_39406,
@@ -85,7 +111,6 @@ export const TRANSPORT_CONFIG: Record<string, TransportConfig> = {
     ],
   },
 
-  // 3. Bus Joinville - Quai 2 (Gallieni / Autres)
   JOINVILLE_HUB_GALLIENI: {
     title: 'Bus - Arrêt Gallieni (Quai 2)',
     stopAreaId: STOP_AREAS.JOINVILLE_BUS_Q_39407,
@@ -99,7 +124,6 @@ export const TRANSPORT_CONFIG: Record<string, TransportConfig> = {
     ],
   },
 
-  // 4. Autres Arrêts (Hippodrome & Breuil)
   HIPPODROME_HUB: {
     title: 'Bus - Arrêt Hippodrome',
     stopAreaId: STOP_AREAS.HIPPODROME_Q,
@@ -107,11 +131,22 @@ export const TRANSPORT_CONFIG: Record<string, TransportConfig> = {
        { id: LINES_CODE.BUS_77, code: '77', name: 'Vers Gare de Lyon / Joinville' }
     ]
   },
+  
   ECOLE_DU_BREUIL_HUB: {
     title: 'Bus - Arrêt École du Breuil',
     stopAreaId: STOP_AREAS.BREUIL_Q,
     lines: [
        { id: LINES_CODE.BUS_201, code: '201', name: 'Vers Champigny / Porte Dorée' }
+    ]
+  },
+
+  // Legacy references for ItineraryWidget compatibility
+  BUS_77_HIPPODROME: {
+    title: 'Bus 77 - Hippodrome',
+    stopAreaId: STOP_AREAS.HIPPODROME_Q,
+    lineId: LINES_CODE.BUS_77,
+    lines: [
+      { id: LINES_CODE.BUS_77, code: '77', name: 'Gare de Lyon' },
     ]
   }
 };
