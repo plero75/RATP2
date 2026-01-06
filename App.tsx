@@ -47,19 +47,7 @@ const App: React.FC = () => {
           </div>
         
           {/* Colonne 2: Hub de Transports */}
-          <div className="flex flex-col gap-2 overflow-y-auto p-2">
-            {/* Section Gare de Joinville-le-Pont */}
-            <div className="flex flex-col gap-2">
-              <h2 className="text-xl font-bold text-sky-300 sticky top-0 bg-[#0d1b2a] py-1 z-10">
-                Gare de Joinville-le-Pont
-              </h2>
-              <TransportWidget config={TRANSPORT_CONFIG.RER_A} icon={<RerAIcon />} />
-              <TransportWidget config={TRANSPORT_CONFIG.JOINVILLE_HUB_GARE} icon={<BusIcon />} title="Bus - Arrêt Gare" />
-              <TransportWidget config={TRANSPORT_CONFIG.JOINVILLE_HUB_GALLIENI} icon={<BusIcon />} title="Bus - Arrêt Av. Gallieni" />
-            </div>
-
-          {/* Colonne 2: Hub de Transports */}
-          <div className="flex flex-col gap-2 p-1 min-h-0">
+          <div className="flex flex-col gap-2 p-1 min-h-0 overflow-y-auto">
             {/* Section Gare de Joinville-le-Pont */}
             <div className="flex flex-col gap-2">
               <h2 className="text-lg font-bold text-sky-300 bg-[#0d1b2a] py-1">Gare de Joinville-le-Pont</h2>
@@ -89,7 +77,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Colonne 3 optionnelle : mise en grille pour petits écrans */}
+          {/* Colonne 3: NewsTicker (visible uniquement sur xl) */}
           <div className="hidden xl:flex flex-col gap-2 min-h-0">
             <NewsTicker />
           </div>
