@@ -87,3 +87,59 @@ export const TRANSPORT_CONFIG: Record<string, TransportConfig> = {
     ]
   }
 };
+
+// ===========================
+// API URLs and Configuration
+// ===========================
+
+// PRIM API URL builder
+export function primUrl(endpoint: string, params: Record<string, string> = {}): string {
+  const query = new URLSearchParams({
+    apiKey: PRIM_API_KEY,
+    ...params,
+  }).toString();
+  return PROXY_URL + encodeURIComponent(`https://api.ratp.fr${endpoint}?${query}`);
+}
+
+// Vélib API
+export const VELIB_API_URL = "https://opendata.paris.fr/api/records/1.0/search/?dataset=velib-disponibilite-en-temps-reel&rows=2&sort=-record_timestamp";
+
+// PMU API
+export const PMU_API_BASE_URL = "https://www.letrot.com/ajax/pronostics/hippiques/";
+
+// Météo (Open-Meteo)
+export const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
+export const WEATHER_PARAMS = {
+  latitude: 48.8235,
+  longitude: 2.5068,
+  current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+  hourly: "temperature_2m,weather_code",
+  daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum",
+  timezone: "Europe/Paris",
+  forecast_days: 7,
+};
+
+// Actualités (RSS Feed)
+export const NEWS_FEED_URL = "https://feeds.reuters.com/reuters/frenchNews?format=xml";
+
+// Trafic Paris
+export const PARIS_TRAFFIC_API_BASE_URL = "https://api.paris.fr/api/datasets/1.0/search/";
+export const PARIS_TRAFFIC_API_PARAMS = {
+  q: "circulation",
+  rows: 50,
+};
+
+// Saint du jour
+export const SAINT_API_URL = "https://saintsday.com/api/saints/today";
+
+// ===========================
+// Refresh Intervals
+// ===========================
+export const REFRESH_INTERVALS = {
+  TRANSPORT: 30000, // 30 secondes
+  VELIB: 60000, // 1 minute
+  WEATHER: 600000, // 10 minutes
+  NEWS: 1800000, // 30 minutes
+  TRAFFIC: 120000, // 2 minutes
+  PMU: 300000, // 5 minutes
+};
