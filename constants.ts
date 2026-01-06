@@ -5,6 +5,7 @@ import { TransportConfig } from './types';
 // ===========================
 export const PROXY_URL = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 export const PRIM_API_KEY = "7nAc6NHplCJtJ46Qw32QFtefq3TQEYrT";
+export const PRIM_API_BASE_URL = "https://prim.iledefrance-mobilites.fr";
 
 // ===========================
 // Zones d'arrêt (StopPoints)
@@ -161,7 +162,8 @@ export function primUrl(endpoint: string, params: Record<string, string> = {}): 
     apiKey: PRIM_API_KEY,
     ...params,
   }).toString();
-  return PROXY_URL + encodeURIComponent(`https://api.ratp.fr${endpoint}?${query}`);
+  const fullUrl = `${PRIM_API_BASE_URL}${endpoint}?${query}`;
+  return PROXY_URL + encodeURIComponent(fullUrl);
 }
 
 // Vélib API
