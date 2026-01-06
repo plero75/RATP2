@@ -7,7 +7,6 @@ import type {
   MonitoredStopVisit,
   GeneralMessageResponse,
 } from '../types';
-// Fix: Replaced `parseISO` with `new Date()` for compatibility as `parseISO` is not available.
 import { differenceInSeconds, isValid, format } from 'date-fns';
 import { InfoIcon } from './icons';
 import { JourneyDetailsModal } from './JourneyDetailsModal';
@@ -20,7 +19,6 @@ interface TransportWidgetProps {
 
 const parseSafeISO = (dateString?: string): Date | null => {
   if (!dateString) return null;
-  // Fix: Replaced `parseISO` with `new Date()` for compatibility.
   const date = new Date(dateString);
   return isValid(date) ? date : null;
 };
@@ -31,7 +29,7 @@ const getMinutesUntil = (from: Date, to: Date): number => {
 
 const getLineLabelFromRef = (lineRef: string): string => {
     const key = REVERSE_LINE_REFS[lineRef];
-    if (!key) return `Ligne ${lineRef.slice(-5, -1)}`; // Fallback
+    if (!key) return `Ligne ${lineRef.slice(-5, -1)}`;
     
     if (key.startsWith('BUS_')) return `Bus ${key.replace('BUS_', '')}`;
     if (key.startsWith('N')) return `Noctilien ${key}`;
@@ -39,7 +37,6 @@ const getLineLabelFromRef = (lineRef: string): string => {
 
     return key;
 }
-
 
 const DeparturePill: React.FC<{departure: any}> = ({ departure: dep }) => {
     const isImminent = !dep.isCancelled && dep.remainingMinutes < 2;
@@ -75,7 +72,6 @@ const DeparturePill: React.FC<{departure: any}> = ({ departure: dep }) => {
         </div>
     );
 };
-
 
 const SingleLineView: React.FC<{ visits: MonitoredStopVisit[], lineId: string, lineLabel: string }> = ({ visits, lineId, lineLabel }) => {
     const [selectedJourney, setSelectedJourney] = useState<{ref: string; destination: string} | null>(null);
@@ -155,15 +151,50 @@ const SingleLineView: React.FC<{ visits: MonitoredStopVisit[], lineId: string, l
     );
 };
 
-
 export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, title }) => {
-  const fetchTransport = useCallback(() => {
-    return fetchTransportData(config.stopAreaId, config.lineId, config.omitLineRef);
-  }, [config.stopAreaId, config.lineId, config.omitLineRef]);
+  // Gérer à la fois config.lineId (ancien) et config.lines (nouveau multi-ligne)
+  const lineIds = useMemo(() => {
+    if (config.lines && config.lines.length > 0) {
+      return config.lines.map(line => line.id);
+    }
+    return config.lineId ? [config.lineId] : [];
+  }, [config.lines, config.lineId]);
+
+  const fetchTransport = useCallback(async () => {
+    if (lineIds.length === 0) {
+      // Aucune ligne spécifiée = récupérer toutes les lignes de l'arrêt
+      return fetchTransportData(config.stopAreaId, undefined, config.omitLineRef);
+    }
+
+    // Faire des appels PRIM pour chaque ligne et fusionner
+    const results = await Promise.all(
+      lineIds.map(lineId => fetchTransportData(config.stopAreaId, lineId, config.omitLineRef))
+    );
+
+    // Fusionner tous les résultats en un seul objet SIRI
+    const allVisits = results.flatMap(r => 
+      r?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []
+    );
+
+    return {
+      Siri: {
+        ServiceDelivery: {
+          StopMonitoringDelivery: [{
+            MonitoredStopVisit: allVisits
+          }]
+        }
+      }
+    };
+  }, [config.stopAreaId, lineIds, config.omitLineRef]);
   
   const { data: transportData, error: transportError, isLoading } = useData(fetchTransport, REFRESH_INTERVALS.TRANSPORT);
 
-  const fetchAlertsCb = useCallback(() => config.lineId ? fetchTrafficAlerts(config.lineId) : Promise.resolve(null), [config.lineId]);
+  // Récupérer les alertes pour chaque ligne
+  const firstLineId = lineIds[0];
+  const fetchAlertsCb = useCallback(() => 
+    firstLineId ? fetchTrafficAlerts(firstLineId) : Promise.resolve(null), 
+    [firstLineId]
+  );
   const { data: alertData } = useData(fetchAlertsCb, REFRESH_INTERVALS.TRAFFIC_ALERTS);
 
   const allVisits = useMemo(() => 
@@ -171,17 +202,17 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
   [transportData]);
 
   const visitsByLine = useMemo(() => {
-    if (config.lineId) {
-        return new Map([[config.lineId, allVisits]]);
+    if (lineIds.length === 1) {
+      return new Map([[lineIds[0], allVisits]]);
     }
     const groups = new Map<string, MonitoredStopVisit[]>();
     for (const visit of allVisits) {
-        const lineRef = visit.MonitoredVehicleJourney.LineRef.value;
-        if (!groups.has(lineRef)) groups.set(lineRef, []);
-        groups.get(lineRef)!.push(visit);
+      const lineRef = visit.MonitoredVehicleJourney.LineRef.value;
+      if (!groups.has(lineRef)) groups.set(lineRef, []);
+      groups.get(lineRef)!.push(visit);
     }
     return groups;
-  }, [allVisits, config.lineId]);
+  }, [allVisits, lineIds]);
   
   const alertMessages = useMemo(() => {
     return (alertData as GeneralMessageResponse | null)?.Siri?.ServiceDelivery
@@ -197,24 +228,24 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
     if (transportError) return <p className="text-red-400 text-center text-sm py-2">Erreur de chargement.</p>;
     if (allVisits.length === 0) return <p className="text-gray-400 text-center text-sm py-2">Aucun passage prévu.</p>;
     
-    // Multi-line (Bus Hub) view
-    if (!config.lineId) {
-        return (
-            <div className="space-y-3">
-                {Array.from(visitsByLine.entries()).map(([lineId, visits]) => {
-                    const lineLabel = getLineLabelFromRef(lineId);
-                    return (
-                        <div key={lineId}>
-                            <h3 className="font-bold text-base text-sky-300 mb-1.5">{lineLabel}</h3>
-                            <SingleLineView visits={visits} lineId={lineId} lineLabel={lineLabel} />
-                        </div>
-                    )
-                })}
-            </div>
-        );
+    // Multi-line view (plusieurs lignes dans le même widget)
+    if (lineIds.length > 1 || (!config.lineId && config.lines)) {
+      return (
+        <div className="space-y-3">
+          {Array.from(visitsByLine.entries()).map(([lineId, visits]) => {
+            const lineLabel = getLineLabelFromRef(lineId);
+            return (
+              <div key={lineId}>
+                <h3 className="font-bold text-base text-sky-300 mb-1.5">{lineLabel}</h3>
+                <SingleLineView visits={visits} lineId={lineId} lineLabel={lineLabel} />
+              </div>
+            );
+          })}
+        </div>
+      );
     }
-    // Single line view
-    return <SingleLineView visits={allVisits} lineId={config.lineId} lineLabel={config.label} />;
+    // Single line view (une seule ligne)
+    return <SingleLineView visits={allVisits} lineId={lineIds[0]} lineLabel={config.label || ''} />;
   };
 
   return (
