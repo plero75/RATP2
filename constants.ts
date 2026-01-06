@@ -28,6 +28,34 @@ export const LINES_CODE = {
   N33: "C01399"
 };
 
+// Reverse mapping: from LineRef codes to LINES_CODE keys
+export const REVERSE_LINE_REFS: Record<string, string> = {
+  "C01742": "RER_A",
+  "C02251": "BUS_77",
+  "C01130": "BUS_101",
+  "C01133": "BUS_106",
+  "C01137": "BUS_108",
+  "C01139": "BUS_110",
+  "C01135": "BUS_112",
+  "C01219": "BUS_201",
+  "C01260": "BUS_281",
+  "C01399": "N33"
+};
+
+// Service reprise (maintenance windows by line)
+export const SERVICE_REPRISE_BY_LINE: Record<string, {start: string; end: string} | null> = {
+  RER_A: null,
+  BUS_77: null,
+  BUS_101: null,
+  BUS_106: null,
+  BUS_108: null,
+  BUS_110: null,
+  BUS_112: null,
+  BUS_201: null,
+  BUS_281: null,
+  N33: null
+};
+
 // Vélib
 export const VELIB_STATION_IDS = {
   HIPPODROME: 12163,
@@ -141,5 +169,6 @@ export const REFRESH_INTERVALS = {
   WEATHER: 600000, // 10 minutes
   NEWS: 1800000, // 30 minutes
   TRAFFIC: 120000, // 2 minutes
+  TRAFFIC_ALERTS: 300000, // 5 minutes
   PMU: 300000, // 5 minutes
 };
