@@ -1,13 +1,9 @@
-"homepage": "https://plero75.github.io/RATP2/",
-"scripts": {
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist"
-}
 {
   "name": "vhp-live-dashboard",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://plero75.github.io/RATP2/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
