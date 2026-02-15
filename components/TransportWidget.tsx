@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useData } from '../hooks/useData';
 import { fetchTransportData, fetchTrafficAlerts } from '../services/api';
-import { REFRESH_INTERVALS, REVERSE_LINE_REFS } from '../constants';
+import { REFRESH_INTERVALS, REVERSE_LINE_REFS, SERVICE_REPRISE_BY_LINE } from '../constants';
 import type {
   TransportConfig,
   MonitoredStopVisit,
@@ -179,9 +179,40 @@ const SingleLineView: React.FC<{
 };
 
 export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, title }) => {
-  const fetchTransport = useCallback(() => {
-    return fetchTransportData(config.stopAreaId, config.lineId, config.omitLineRef);
-  }, [config.stopAreaId, config.lineId, config.omitLineRef]);
+  // Gérer à la fois config.lineId (ancien) et config.lines (nouveau multi-ligne)
+  const lineIds = useMemo(() => {
+    if (config.lines && config.lines.length > 0) {
+      return config.lines.map(line => line.id);
+    }
+    return config.lineId ? [config.lineId] : [];
+  }, [config.lines, config.lineId]);
+
+  const fetchTransport = useCallback(async () => {
+    if (lineIds.length === 0) {
+      // Aucune ligne spécifiée = récupérer toutes les lignes de l'arrêt
+      return fetchTransportData(config.stopAreaId, undefined, config.omitLineRef);
+    }
+
+    // Faire des appels PRIM pour chaque ligne et fusionner
+    const results = await Promise.all(
+      lineIds.map(lineId => fetchTransportData(config.stopAreaId, lineId, config.omitLineRef))
+    );
+
+    // Fusionner tous les résultats en un seul objet SIRI
+    const allVisits = results.flatMap(r => 
+      r?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []
+    );
+
+    return {
+      Siri: {
+        ServiceDelivery: {
+          StopMonitoringDelivery: [{
+            MonitoredStopVisit: allVisits
+          }]
+        }
+      }
+    };
+  }, [config.stopAreaId, lineIds, config.omitLineRef]);
   
   const { data: transportData, error: transportError, isLoading } = useData(fetchTransport, REFRESH_INTERVALS.TRANSPORT);
 
@@ -218,7 +249,7 @@ export const TransportWidget: React.FC<TransportWidgetProps> = ({ config, icon, 
     }
     
     return groups;
-  }, [allVisits, config.lineId]);
+  }, [allVisits, lineIds]);
   
   const alertMessages = useMemo(() => {
     return (alertData as GeneralMessageResponse | null)?.Siri?.ServiceDelivery

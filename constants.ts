@@ -75,9 +75,12 @@ export const STOPS = {
 export const TRANSPORT_CONFIG = {
   // Lignes individuelles
   RER_A: {
-    stopAreaId: STOPS.JOINVILLE_RER.RERA.join(','),
-    lineId: LINE_REFS.RERA,
-    label: 'RER A',
+    title: 'RER A - Gare de Joinville-le-Pont',
+    stopAreaId: STOP_AREAS.JOINVILLE_RER,
+    lines: [
+      { id: LINES_CODE.RER_A, code: 'A', name: 'RER A', direction: 'Paris (Ouest)', filterDirection: 'W' },
+      { id: LINES_CODE.RER_A, code: 'A', name: 'RER A', direction: 'Boissy (Est)', filterDirection: 'E' },
+    ],
   },
   BUS_77_JOINVILLE: { 
     stopAreaId: STOPS.JOINVILLE_RER.BUS_77[0], 
@@ -153,11 +156,15 @@ export const TRANSPORT_CONFIG = {
     label: 'Bus - Arrêt Gare',
     omitLineRef: [LINE_REFS.RERA], // Exclut le RER A
   },
+
+  // 3. Bus Joinville - Quai 2 (Gallieni / Autres)
   JOINVILLE_HUB_GALLIENI: {
     stopAreaId: STOPS.JOINVILLE_RER.BUS_108[0],
     label: 'Bus - Arrêt Av. Gallieni',
     omitLineRef: [LINE_REFS.RERA], // Exclut le RER A
   },
+
+  // 4. Autres Arrêts (Hippodrome & Breuil)
   HIPPODROME_HUB: {
     stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_77[0],
     label: 'Bus - Arrêt Hippodrome',

@@ -1,20 +1,31 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Dashboard VHP — Paris-Vincennes
 
-# Run and deploy your AI Studio app
+Dashboard temps réel pour l'Hippodrome de Paris-Vincennes : horaires transport, météo, Vélib', trafic et actualités.
 
-This contains everything you need to run your app locally.
+## Prérequis
 
-View your app in AI Studio: https://ai.studio/apps/drive/1MjoqLey7Vif8hWFQ9sxSjwjf1Z_XA3oJ
+- Node.js
 
-## Run Locally
+## Installation
 
-**Prerequisites:**  Node.js
+```bash
+npm install
+```
 
+## Lancer en local
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Aperçu du build
+
+```bash
+npm run preview
+```

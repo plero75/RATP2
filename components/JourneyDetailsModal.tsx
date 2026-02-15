@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { useData } from '../hooks/useData';
 import { fetchVehicleJourney } from '../services/api';
-// Fix: Replaced `parseISO` with `new Date()` for compatibility as `parseISO` is not available.
 import { format } from 'date-fns';
 
 interface JourneyDetailsModalProps {
@@ -41,7 +40,6 @@ export const JourneyDetailsModal: React.FC<JourneyDetailsModalProps> = ({
       <ol className="space-y-2">
         {stops.map((stop, index) => {
           const arrivalTime = stop.ExpectedArrivalTime || stop.AimedArrivalTime;
-          // Fix: Replaced `parseISO` with `new Date()` for compatibility.
           const time = arrivalTime ? format(new Date(arrivalTime), 'HH:mm') : '--:--';
           return (
             <li key={index} className="flex items-center gap-4 text-sm">
