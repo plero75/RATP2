@@ -40,9 +40,8 @@ export const LINE_REFS = {
 } as const;
 
 export const REVERSE_LINE_REFS: { [key: string]: string } = Object.fromEntries(
-    Object.entries(LINE_REFS).map(([key, value]) => [value, key])
+  Object.entries(LINE_REFS).map(([key, value]) => [value, key])
 );
-
 
 // =====================================================
 // 🏁 StopPoints valides (MonitoringRef)
@@ -74,47 +73,100 @@ export const STOPS = {
 // 🌍 Configurations de transport
 // =====================================================
 export const TRANSPORT_CONFIG = {
-  // Individual lines (some used for Itinerary)
+  // Lignes individuelles
   RER_A: {
     stopAreaId: STOPS.JOINVILLE_RER.RERA.join(','),
     lineId: LINE_REFS.RERA,
     label: 'RER A',
   },
-  BUS_77_JOINVILLE: { stopAreaId: STOPS.JOINVILLE_RER.BUS_77[0], lineId: LINE_REFS.BUS_77, label: 'Bus 77' },
-  BUS_101: { stopAreaId: STOPS.JOINVILLE_RER.BUS_101[0], lineId: LINE_REFS.BUS_101, label: 'Bus 101' },
-  BUS_106_JOINVILLE: { stopAreaId: STOPS.JOINVILLE_RER.BUS_106[0], lineId: LINE_REFS.BUS_106, label: 'Bus 106' },
-  BUS_108: { stopAreaId: STOPS.JOINVILLE_RER.BUS_108[0], lineId: LINE_REFS.BUS_108, label: 'Bus 108' },
-  BUS_110: { stopAreaId: STOPS.JOINVILLE_RER.BUS_110[0], lineId: LINE_REFS.BUS_110, label: 'Bus 110' },
-  BUS_201_JOINVILLE: { stopAreaId: STOPS.JOINVILLE_RER.BUS_201[0], lineId: LINE_REFS.BUS_201, label: 'Bus 201' },
+  BUS_77_JOINVILLE: { 
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_77[0], 
+    lineId: LINE_REFS.BUS_77, 
+    label: 'Bus 77' 
+  },
+  BUS_101: { 
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_101[0], 
+    lineId: LINE_REFS.BUS_101, 
+    label: 'Bus 101' 
+  },
+  BUS_106_JOINVILLE: { 
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_106[0], 
+    lineId: LINE_REFS.BUS_106, 
+    label: 'Bus 106' 
+  },
+  BUS_108: { 
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_108[0], 
+    lineId: LINE_REFS.BUS_108, 
+    label: 'Bus 108' 
+  },
+  BUS_110: { 
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_110[0], 
+    lineId: LINE_REFS.BUS_110, 
+    label: 'Bus 110' 
+  },
+  BUS_201_JOINVILLE: { 
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_201[0], 
+    lineId: LINE_REFS.BUS_201, 
+    label: 'Bus 201' 
+  },
   
-  BUS_77_HIPPODROME: { stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_77[0], lineId: LINE_REFS.BUS_77, label: 'Bus 77' },
-  BUS_106_HIPPODROME: { stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_106[0], lineId: LINE_REFS.BUS_106, label: 'Bus 106' },
-  BUS_N33_HIPPODROME: { stopAreaId: STOPS.HIPPODROME_VINCENNES.N33[0], lineId: LINE_REFS.N33, label: 'Noctilien N33' },
-  BUS_N71_HIPPODROME: { stopAreaId: STOPS.HIPPODROME_VINCENNES.N71[0], lineId: LINE_REFS.N71, label: 'Noctilien N71' },
+  BUS_77_HIPPODROME: { 
+    stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_77[0], 
+    lineId: LINE_REFS.BUS_77, 
+    label: 'Bus 77' 
+  },
+  BUS_106_HIPPODROME: { 
+    stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_106[0], 
+    lineId: LINE_REFS.BUS_106, 
+    label: 'Bus 106' 
+  },
+  BUS_N33_HIPPODROME: { 
+    stopAreaId: STOPS.HIPPODROME_VINCENNES.N33[0], 
+    lineId: LINE_REFS.N33, 
+    label: 'Noctilien N33' 
+  },
+  BUS_N71_HIPPODROME: { 
+    stopAreaId: STOPS.HIPPODROME_VINCENNES.N71[0], 
+    lineId: LINE_REFS.N71, 
+    label: 'Noctilien N71' 
+  },
   
-  BUS_77_ECOLE_DU_BREUIL: { stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_77[0], lineId: LINE_REFS.BUS_77, label: 'Bus 77' },
-  BUS_201_ECOLE_DU_BREUIL: { stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_201[0], lineId: LINE_REFS.BUS_201, label: 'Bus 201' },
-  BUS_N33_ECOLE_DU_BREUIL: { stopAreaId: STOPS.ECOLE_DU_BREUIL.N33[0], lineId: LINE_REFS.N33, label: 'Noctilien N33' },
+  BUS_77_ECOLE_DU_BREUIL: { 
+    stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_77[0], 
+    lineId: LINE_REFS.BUS_77, 
+    label: 'Bus 77' 
+  },
+  BUS_201_ECOLE_DU_BREUIL: { 
+    stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_201[0], 
+    lineId: LINE_REFS.BUS_201, 
+    label: 'Bus 201' 
+  },
+  BUS_N33_ECOLE_DU_BREUIL: { 
+    stopAreaId: STOPS.ECOLE_DU_BREUIL.N33[0], 
+    lineId: LINE_REFS.N33, 
+    label: 'Noctilien N33' 
+  },
 
-  // HUB CONFIGS (for efficient UI)
+  // Hubs multi-lignes (vue consolidée)
   JOINVILLE_HUB_GARE: { 
-    stopAreaId: STOPS.JOINVILLE_RER.BUS_77[0], // stop 39406
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_77[0],
     label: 'Bus - Arrêt Gare',
+    omitLineRef: [LINE_REFS.RERA], // Exclut le RER A
   },
   JOINVILLE_HUB_GALLIENI: {
-    stopAreaId: STOPS.JOINVILLE_RER.BUS_108[0], // stop 39407
+    stopAreaId: STOPS.JOINVILLE_RER.BUS_108[0],
     label: 'Bus - Arrêt Av. Gallieni',
+    omitLineRef: [LINE_REFS.RERA], // Exclut le RER A
   },
   HIPPODROME_HUB: {
-    stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_77[0], // stop 463641
+    stopAreaId: STOPS.HIPPODROME_VINCENNES.BUS_77[0],
     label: 'Bus - Arrêt Hippodrome',
   },
   ECOLE_DU_BREUIL_HUB: {
-    stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_77[0], // stop 463644
+    stopAreaId: STOPS.ECOLE_DU_BREUIL.BUS_77[0],
     label: 'Bus - Arrêt École du Breuil',
   },
 } as const;
-
 
 // =====================================================
 // 🌦️ Météo
@@ -138,16 +190,13 @@ export const NEWS_FEED_BACKUP = "https://www.lemonde.fr/rss/une.xml";
 // =====================================================
 export const PARIS_TRAFFIC_API_BASE_URL = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/chantiers-perturbants/records";
 export const PARIS_TRAFFIC_API_PARAMS = {
-    where: 'geom within(circle(48.827, 2.45, 2000))',
-    limit: '10'
+  where: 'geom within(circle(48.827, 2.45, 2000))',
+  limit: '10'
 };
-
 
 // =====================================================
 // 🏇 Courses hippiques (PMU)
 // =====================================================
-// URL corrigée : client 1 au lieu de client 7
-// Format : https://online.turfinfo.api.pmu.fr/rest/client/1/programme/DDMMYYYY
 export const PMU_API_BASE_URL = "https://online.turfinfo.api.pmu.fr/rest/client/1/programme/";
 
 // =====================================================
@@ -180,11 +229,8 @@ export const REFRESH_INTERVALS = {
 // =====================================================
 // 🧩 Compatibilité rétro complète
 // =====================================================
-
-// 🗺️ Configuration itinéraires
 export const ITINERARY_CONSTANTS = {
   MAX_STOPS: 20,
-  // Durations in minutes
   BUS_TIME_HIPPODROME_TO_JOINVILLE_MIN: 10,
   WALK_TIME_TO_JOINVILLE_MIN: 25,
   BUS_TIME_HIPPODROME_TO_GARE_DE_LYON_MIN: 40,
