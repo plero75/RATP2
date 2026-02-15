@@ -1,149 +1,132 @@
-// types.ts
+// =====================================================
+// 📑 types.ts – Dashboard Hippodrome de Vincennes
+// =====================================================
+// Définit tous les types TypeScript pour le dashboard.
+// =====================================================
 
-// ✅ Statut des départs pour le widget Transport
-export enum DepartureStatus {
-  ON_TIME,
-  IMMINENT,
-  DELAYED,
-  CANCELLED,
-  SERVICE_ENDED,
-}
-
-// ✅ Configuration d'une ligne de transport
+// ---------------------------------------------
+// 🚍 Configuration de transport
+// ---------------------------------------------
 export interface TransportConfig {
   stopAreaId: string;
-  lineId?: string; // Made optional for bus hubs
+  lineId?: string;
   label: string;
-  omitLineRef?: boolean;
-  hubLines?: { lineId: string; label: string }[];
+  omitLineRef?: string[]; // Lignes à exclure (ex: RER A dans les hubs bus)
 }
 
-// ✅ Données statiques GTFS pour les premiers/derniers départs
-export interface GtfsData {
-    [stopAreaId: string]: {
-        [lineId: string]: {
-            dirA_first: string; dirA_last: string;
-            dirB_first: string; dirB_last: string;
-        };
-    };
+// ---------------------------------------------
+// 🛤️ Données SIRI temps réel
+// ---------------------------------------------
+export interface SiriValue {
+  value: string;
 }
 
-// ✅ Types pour l'API Transport (SIRI - StopMonitoring)
+export interface MonitoredCall {
+  AimedDepartureTime: string;
+  ExpectedDepartureTime?: string;
+  DepartureStatus?: string;
+}
+
+export interface MonitoredVehicleJourney {
+  LineRef: SiriValue;
+  DirectionRef?: SiriValue;
+  DestinationName?: SiriValue[];
+  MonitoredCall: MonitoredCall;
+  DatedVehicleJourneyRef?: string;
+  JourneyNote?: SiriValue[];
+}
+
 export interface MonitoredStopVisit {
-  MonitoringRef: { value: string };
-  MonitoredVehicleJourney: {
-    LineRef: { value: string };
-    DatedVehicleJourneyRef: string;
-    DestinationName?: { value: string }[];
-    JourneyNote?: { value: string }[];
-    MonitoredCall: {
-      AimedDepartureTime: string; // ISO date string
-      ExpectedDepartureTime?: string; // ISO date string
-      // Fix: Add optional DepartureStatus property based on SIRI spec and usage in TransportWidget.
-      DepartureStatus?: string;
-    };
-  };
+  MonitoredVehicleJourney: MonitoredVehicleJourney;
 }
 
-export interface StopMonitoringResponse {
+export interface StopMonitoringDelivery {
+  MonitoredStopVisit: MonitoredStopVisit[];
+}
+
+export interface ServiceDelivery {
+  StopMonitoringDelivery?: StopMonitoringDelivery[];
+  GeneralMessageDelivery?: GeneralMessageDelivery[];
+}
+
+export interface SiriResponse {
   Siri: {
-    ServiceDelivery: {
-      StopMonitoringDelivery: {
-        MonitoredStopVisit: MonitoredStopVisit[];
-      }[];
-    };
+    ServiceDelivery: ServiceDelivery;
   };
 }
 
-// ✅ Types for Vehicle Journey API
-export interface JourneyCall {
-  StopPointName: { value: string };
-  AimedArrivalTime: string; // ISO date string
-  ExpectedArrivalTime: string; // ISO date string
+// ---------------------------------------------
+// ⚠️ Alertes trafic
+// ---------------------------------------------
+export interface MessageText {
+  value: string;
 }
 
-export interface DatedVehicleJourney {
-    DatedVehicleJourneyRef: string;
-    Calls: {
-      Call: JourneyCall[];
-    };
+export interface Message {
+  MessageText?: MessageText[];
 }
 
-export interface VehicleJourneyResponse {
-  Siri: {
-    ServiceDelivery: {
-      VehicleJourneyDelivery: {
-        DatedVehicleJourney: DatedVehicleJourney[];
-      }[];
-    };
-  };
+export interface InfoMessageContent {
+  Message?: Message[];
 }
 
-
-// ✅ Types pour l'API Alertes Trafic (SIRI - GeneralMessage)
 export interface InfoMessage {
-  Content: {
-    Message: {
-      MessageText: { value: string }[];
-    }[];
-  };
+  Content?: InfoMessageContent;
+}
+
+export interface GeneralMessageDelivery {
+  InfoMessage?: InfoMessage[];
 }
 
 export interface GeneralMessageResponse {
   Siri: {
     ServiceDelivery: {
-      GeneralMessageDelivery: {
-        InfoMessage: InfoMessage[];
-      }[];
+      GeneralMessageDelivery?: GeneralMessageDelivery[];
     };
   };
 }
 
-// ✅ Types pour l'API Météo (Open-Meteo)
-export interface WeatherResponse {
+// ---------------------------------------------
+// 🌦️ Météo
+// ---------------------------------------------
+export interface WeatherData {
   current_weather: {
     temperature: number;
     weathercode: number;
-  };
-  hourly?: {
-    time: string[];
-    temperature_2m: number[];
-    weathercode: number[];
-  };
-  daily?: {
-    time: string[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    weathercode: number[];
+    windspeed: number;
   };
 }
 
-export interface SaintResponse {
-  data?: {
-    nameday?: {
-      fr?: string;
-    };
-  };
+// ---------------------------------------------
+// 📰 Actualités
+// ---------------------------------------------
+export interface NewsItem {
+  title: string;
+  link: string;
+  pubDate: string;
 }
 
-// ✅ Types pour l'API Vélib' (Smovengo)
+// ---------------------------------------------
+// 🚲 Vélib'
+// ---------------------------------------------
 export interface VelibStation {
-  stationcode: string | number;
-  name: string;
-  mechanical: number;
-  ebike: number;
-  numdocksavailable: number;
-  is_renting: 'OUI' | 'NON';
-  is_installed: 'OUI' | 'NON';
+  station_id: number;
+  num_bikes_available: number;
+  num_docks_available: number;
 }
 
-export type VelibStationStatus = VelibStation[];
+export interface VelibData {
+  data: {
+    stations: VelibStation[];
+  };
+}
 
-
-// ✅ Types pour l'API PMU
+// ---------------------------------------------
+// 🏇 PMU
+// ---------------------------------------------
 export interface PmuRace {
   numOrdre: number;
-  libelle: string;
+  libelleCourt: string;
   heureDepart: string;
 }
 
@@ -154,31 +137,8 @@ export interface PmuReunion {
   courses: PmuRace[];
 }
 
-export interface PmuResponse {
+export interface PmuData {
   programme: {
     reunions: PmuReunion[];
   };
-}
-
-// ✅ Types for News RSS
-export interface NewsItem {
-  title: string;
-  link: string;
-  pubDate: string;
-  description: string;
-}
-
-// ✅ Types for Paris Traffic Events API (opendata.paris.fr)
-export interface TrafficEvent {
-  lieu: string;
-  intitule: string;
-  type: string;
-  datedebut: string; // ISO date string
-  datefin?: string; // ISO date string
-  description: string;
-}
-
-export interface TrafficApiResponse {
-  total_count: number;
-  results: TrafficEvent[];
 }
