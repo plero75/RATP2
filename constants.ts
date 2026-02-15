@@ -13,7 +13,7 @@ export const PROXY_URL =
   "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
 // ---------------------------------------------
-// 🧩 Générateur d’URL PRIM
+// 🧩 Générateur d'URL PRIM
 // ---------------------------------------------
 export function primUrl(
   path: string,
@@ -146,10 +146,12 @@ export const PARIS_TRAFFIC_API_PARAMS = {
 // =====================================================
 // 🏇 Courses hippiques (PMU)
 // =====================================================
+// URL corrigée : client 1 au lieu de client 7
+// Format : https://online.turfinfo.api.pmu.fr/rest/client/1/programme/DDMMYYYY
 export const PMU_API_BASE_URL = "https://online.turfinfo.api.pmu.fr/rest/client/1/programme/";
 
 // =====================================================
-// 🚲 Vélib’
+// 🚲 Vélib'
 // =====================================================
 export const VELIB_API_URL = "https://velib-metropole-opendata.smovengo.fr/opendata/Velib_Metropole/station_status.json";
 export const VELIB_STATION_IDS = {
